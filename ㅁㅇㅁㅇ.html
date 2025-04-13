@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Product Visualizer (200 Objects)</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden; /* Prevent scrollbars */
+        background-color: #ffffff; /* Default white */
+        color: #000000;
+        font-family: sans-serif;
+        touch-action: none; /* 모바일 터치 동작 최적화 */
+      }
+      canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+      /* Responsive Controls CSS */
+      #controls {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        z-index: 100;
+        background-color: rgba(255, 255, 255, 0.7);
+        padding: 10px;
+        border-radius: 5px;
+        color: #000000;
+        max-height: 85vh; /* Slightly reduced height */
+        overflow-y: auto;
+        max-width: 90%; /* Limit width on small screens */
+        box-sizing: border-box; /* Include padding in width */
+        touch-action: none; /* 모바일 터치 동작 최적화 */
+      }
+      /* Max width for larger screens */
+      @media (min-width: 600px) {
+        #controls {
+          max-width: 280px;
+        }
+      }
+      /* 모바일 최적화 */
+      @media (max-width: 768px) {
+        #controls {
+          padding: 8px;
+          font-size: 14px;
+        }
+        #logoImage {
+          height: 30px;
+        }
+        #bgColorPicker {
+          width: 40px;
+          height: 20px;
+        }
+        #visitSiteButton {
+          padding: 6px;
+          font-size: 0.8em;
+        }
+      }
+      #logoImage {
+        display: block;
+        height: 40px; /* Logo height */
+        width: auto;
+        margin-bottom: 10px; /* Space below logo */
+      }
+      #controls label {
+        margin-right: 5px;
+        vertical-align: middle;
+      }
+      #bgColorPicker {
+        vertical-align: middle;
+        cursor: pointer;
+        border: 1px solid #ccc;
+        width: 50px;
+        height: 25px;
+      }
+      /* --- Style for Selected Item Panel --- */
+      #selectedItemPanel {
+        margin-top: 15px;
+        padding-top: 10px;
+        border-top: 1px solid #ccc;
+        display: none; /* Initially hidden */
+      }
+      #selectedItemPanel h4 {
+        margin: 0 0 5px 0;
+        font-size: 1em;
+      }
+      #selectedItemImage {
+        max-width: 100%;
+        height: auto;
+        margin-bottom: 10px;
+        border: 1px solid #eee;
+      }
+      #visitSiteButton {
+        display: block;
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 0.9em;
+      }
+      #visitSiteButton:hover {
+        background-color: #0056b3;
+      }
+      /* --- End Style --- */
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <img
+        id="logoImage"
+        src="https://mayi2d.shop/cdn/shop/files/2025-03-27_10.25.03.png?v=1743198292&width=180"
+        alt="May I 2D Logo"
+      />
+
+      <div>
+        <label for="bgColorPicker">Background Color:</label>
+        <input type="color" id="bgColorPicker" value="#ffffff" />
+      </div>
+
+      <div id="selectedItemPanel">
+        <h4>Selected Product</h4>
+        <img id="selectedItemImage" src="" alt="Selected product image" />
+        <button id="visitSiteButton" data-url="">Visit Site</button>
+      </div>
+    </div>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+      let scene, camera, renderer, controls;
+      let imageObjects = [];
+      let pointLights = [];
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      let INTERSECTED;
+      const clock = new THREE.Clock();
+      let lastPointerMoveTime = 0;
+      const POINTER_MOVE_THROTTLE = 16; // ~60fps
+
+      // --- Configuration ---
+      /* 🚨 Performance Warning: Displaying 200 objects with individual rotations and lights
+       * can cause significant performance issues (lag, stuttering), especially on mobile devices
+       * or less powerful computers. Consider reducing imageObjectCount if performance is poor.
+       * For major optimization, consider using THREE.InstancedMesh.
+       */
+      // --- Configuration ---
+      /* 🚨 Performance Warning: Displaying 200 objects can be demanding. */
+      // *** Updated Product List (Total 166 products) ***
+      const products = [
+        // Previous 97
+        {
+          imageUrl: "https://i.imgur.com/px60C11.png",
+          purchaseUrl: "https://mayi2d.shop/products/rose-little-prince",
+        },
+        {
+          imageUrl: "https://i.imgur.com/eqcLGF6.png",
+          purchaseUrl: "https://mayi2d.shop/products/amen%F0%9F%99%8F",
+        },
+        {
+          imageUrl: "https://i.imgur.com/xU7TS58.png",
+          purchaseUrl: "https://mayi2d.shop/products/sweet-panda",
+        },
+        {
+          imageUrl: "https://i.imgur.com/5b9EsGB.png",
+          purchaseUrl: "https://mayi2d.shop/products/black-punk-skull",
+        },
+        {
+          imageUrl: "https://i.imgur.com/bPXsjAw.png",
+          purchaseUrl: "https://mayi2d.shop/products/money-shape",
+        },
+        {
+          imageUrl: "https://i.imgur.com/GETdAiE.png",
+          purchaseUrl: "https://mayi2d.shop/products/bread-series",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Yz7dBh7.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/dinosaur-nugget-and-ketchup",
+        },
+        {
+          imageUrl: "https://i.imgur.com/1LF0lQF.png",
+          purchaseUrl: "https://mayi2d.shop/products/lab-mouse",
+        },
+        {
+          imageUrl: "https://i.imgur.com/HNLaeRM.png",
+          purchaseUrl: "https://mayi2d.shop/products/lab-flask-plants",
+        },
+        {
+          imageUrl: "https://i.imgur.com/xi6EnkF.png",
+          purchaseUrl: "https://mayi2d.shop/products/alien-green-cat-ufo",
+        },
+        {
+          imageUrl: "https://i.imgur.com/sllSsvG.png",
+          purchaseUrl: "https://mayi2d.shop/products/im-rock",
+        },
+        {
+          imageUrl: "https://i.imgur.com/gA6lWEj.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/soooo-cute-dinosaur-%F0%9F%91%BE",
+        },
+        {
+          imageUrl: "https://i.imgur.com/lRt2Uqw.png",
+          purchaseUrl: "http://mayi2d.shop/products/beetles",
+        },
+        {
+          imageUrl: "https://i.imgur.com/gAhjsnt.png",
+          purchaseUrl: "https://mayi2d.shop/products/one-eyed-mon",
+        },
+        {
+          imageUrl: "https://i.imgur.com/m7fDSk8.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/radioactive-radiation-labeling",
+        },
+        {
+          imageUrl: "https://i.imgur.com/lqjsDYn.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/marine-creatures%F0%9F%90%9A",
+        },
+        {
+          imageUrl: "https://i.imgur.com/sHcbpIm.png",
+          purchaseUrl: "https://mayi2d.shop/products/black-white-day",
+        },
+        {
+          imageUrl: "https://i.imgur.com/HIh73o1.png",
+          purchaseUrl: "https://mayi2d.shop/products/lazying-cat",
+        },
+        {
+          imageUrl: "https://i.imgur.com/wLvfLgH.png",
+          purchaseUrl: "https://mayi2d.shop/products/fluffy-penguin-lettering",
+        },
+        {
+          imageUrl: "https://i.imgur.com/mSUxi9J.png",
+          purchaseUrl: "https://mayi2d.shop/products/gas-mask",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Cg1z4B7.png",
+          purchaseUrl: "https://mayi2d.shop/products/green-frog-on-stool",
+        },
+        {
+          imageUrl: "https://i.imgur.com/N5XMO80.png",
+          purchaseUrl: "https://mayi2d.shop/products/fire-helllmo",
+        },
+        {
+          imageUrl: "https://i.imgur.com/p8SCKt6.png",
+          purchaseUrl: "https://mayi2d.shop/products/honk-honk",
+        },
+        {
+          imageUrl: "https://i.imgur.com/k7lFI9V.png",
+          purchaseUrl: "https://mayi2d.shop/products/punk-skull",
+        },
+        {
+          imageUrl: "https://i.imgur.com/GKfk2sx.png",
+          purchaseUrl: "https://mayi2d.shop/products/shotguns",
+        },
+        {
+          imageUrl: "https://i.imgur.com/YFUaw45.png",
+          purchaseUrl: "https://mayi2d.shop/products/wings-eye",
+        },
+        {
+          imageUrl: "https://i.imgur.com/W7kVc9D.png",
+          purchaseUrl: "https://mayi2d.shop/products/magic-potion",
+        },
+        {
+          imageUrl: "https://i.imgur.com/ohX7Kk0.png",
+          purchaseUrl: "https://mayi2d.shop/products/pool-boby",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9GLdv8S.png",
+          purchaseUrl: "https://mayi2d.shop/products/mystery-stuff",
+        },
+        {
+          imageUrl: "https://i.imgur.com/mywFTuJ.png",
+          purchaseUrl: "https://mayi2d.shop/products/luna-eye",
+        },
+        {
+          imageUrl: "https://i.imgur.com/u0Zax2J.png",
+          purchaseUrl: "https://mayi2d.shop/products/triple-bus",
+        },
+        {
+          imageUrl: "https://i.imgur.com/LZK48F5.png",
+          purchaseUrl: "https://mayi2d.shop/products/space-company",
+        },
+        {
+          imageUrl: "https://i.imgur.com/7pJLecy.png",
+          purchaseUrl: "https://mayi2d.shop/products/pumpkin-friends",
+        },
+        {
+          imageUrl: "https://i.imgur.com/hgr5Fgw.png",
+          purchaseUrl: "https://mayi2d.shop/products/i-did-it",
+        },
+        {
+          imageUrl: "https://i.imgur.com/tY2g0wr.png",
+          purchaseUrl: "https://mayi2d.shop/products/romance-pin",
+        },
+        {
+          imageUrl: "https://i.imgur.com/ZnKfEt1.png",
+          purchaseUrl: "https://mayi2d.shop/products/coffee-pumpkin",
+        },
+        {
+          imageUrl: "https://i.imgur.com/5g5pJBb.png",
+          purchaseUrl: "https://mayi2d.shop/products/pink-slime",
+        },
+        {
+          imageUrl: "https://i.imgur.com/nwUPDLq.png",
+          purchaseUrl: "https://mayi2d.shop/products/ticket",
+        },
+        {
+          imageUrl: "https://i.imgur.com/l1Enik5.png",
+          purchaseUrl: "https://mayi2d.shop/products/insam",
+        },
+        {
+          imageUrl: "https://i.imgur.com/0cr9Tpx.png",
+          purchaseUrl: "https://mayi2d.shop/products/science-brooches",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Gn8rTId.png",
+          purchaseUrl: "https://mayi2d.shop/products/sports-star-uniform",
+        },
+        {
+          imageUrl: "https://i.imgur.com/IeORQvd.png",
+          purchaseUrl: "https://mayi2d.shop/products/startled-cat",
+        },
+        {
+          imageUrl: "https://i.imgur.com/lAa6rbg.png",
+          purchaseUrl: "https://mayi2d.shop/products/meow-cat-keychain-luck-1",
+        },
+        {
+          imageUrl: "https://i.imgur.com/7votial.png",
+          purchaseUrl: "https://mayi2d.shop/products/sad-hamster-key-chain",
+        },
+        {
+          imageUrl: "https://i.imgur.com/INNoWiQ.png",
+          purchaseUrl: "https://mayi2d.shop/products/stronger-than-you-think",
+        },
+        {
+          imageUrl: "https://i.imgur.com/HYDjwO6.png",
+          purchaseUrl: "https://mayi2d.shop/products/movie-car",
+        },
+        {
+          imageUrl: "https://i.imgur.com/kQ6YI7e.png",
+          purchaseUrl: "https://mayi2d.shop/products/punk-skull-symbol",
+        },
+        {
+          imageUrl: "https://i.imgur.com/KoAL6XJ.png",
+          purchaseUrl: "https://mayi2d.shop/products/punisher-skull",
+        },
+        {
+          imageUrl: "https://i.imgur.com/wTFSY5N.png",
+          purchaseUrl: "https://mayi2d.shop/products/skull-of-rock",
+        },
+        {
+          imageUrl: "https://i.imgur.com/tXsQz9f.png",
+          purchaseUrl: "https://mayi2d.shop/products/gold-47",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Jkb1XgY.png",
+          purchaseUrl: "https://mayi2d.shop/products/glock-z",
+        },
+        {
+          imageUrl: "https://i.imgur.com/DRpZAg2.png",
+          purchaseUrl: "https://mayi2d.shop/products/just-life",
+        },
+        {
+          imageUrl: "https://i.imgur.com/QcUVzYZ.png",
+          purchaseUrl: "https://mayi2d.shop/products/green-plant-animal-face",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Duz6x1z.png",
+          purchaseUrl: "https://mayi2d.shop/products/vegetarian-bottle",
+        },
+        {
+          imageUrl: "https://i.imgur.com/n2y5M5O.png",
+          purchaseUrl: "https://mayi2d.shop/products/pink-joint",
+        },
+        {
+          imageUrl: "https://i.imgur.com/kErgX0i.png",
+          purchaseUrl: "https://mayi2d.shop/products/1-minute-later",
+        },
+        {
+          imageUrl: "https://i.imgur.com/jnQKuCP.png",
+          purchaseUrl: "https://mayi2d.shop/products/coral-reef-j",
+        },
+        {
+          imageUrl: "https://i.imgur.com/K25eeaD.png",
+          purchaseUrl: "https://mayi2d.shop/products/daisy-bong",
+        },
+        {
+          imageUrl: "https://i.imgur.com/r8ECoPz.png",
+          purchaseUrl: "https://mayi2d.shop/products/hungry-larva",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9UeUROm.png",
+          purchaseUrl: "https://mayi2d.shop/products/sunday-cupcake",
+        },
+        {
+          imageUrl: "https://i.imgur.com/OzerZT3.png",
+          purchaseUrl: "https://mayi2d.shop/products/human-organ-bottle",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Ru0Xgz7.png",
+          purchaseUrl: "https://mayi2d.shop/products/need-more-coffee",
+        },
+        {
+          imageUrl: "https://i.imgur.com/p52R6HC.png",
+          purchaseUrl: "https://mayi2d.shop/products/pink-portal",
+        },
+        {
+          imageUrl: "https://i.imgur.com/h0oqrIs.png",
+          purchaseUrl: "https://mayi2d.shop/products/girl-power%F0%9F%8C%9F",
+        },
+        {
+          imageUrl: "https://i.imgur.com/BJkmLGm.png",
+          purchaseUrl: "https://mayi2d.shop/products/colored-painting-brush",
+        },
+        {
+          imageUrl: "https://i.imgur.com/2xwHP9f.png",
+          purchaseUrl: "https://mayi2d.shop/products/women-belong-in-the-lab",
+        },
+        {
+          imageUrl: "https://i.imgur.com/i4erGhU.png",
+          purchaseUrl: "https://mayi2d.shop/products/feeling-goods-good-enough",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Zx4kwTX.png",
+          purchaseUrl: "https://mayi2d.shop/products/you-are-the-dancing-queen",
+        },
+        {
+          imageUrl: "https://i.imgur.com/oAKjGrr.png",
+          purchaseUrl: "https://mayi2d.shop/products/angel-love",
+        },
+        {
+          imageUrl: "https://i.imgur.com/gC2kQjV.png",
+          purchaseUrl: "https://mayi2d.shop/products/burning-dice-%F0%9F%94%A5",
+        },
+        {
+          imageUrl: "https://i.imgur.com/idF7VmU.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/strawberries-basket-%F0%9F%8D%93",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9LOM18S.png",
+          purchaseUrl: "https://mayi2d.shop/products/cheeze-alien-%F0%9F%91%BD",
+        },
+        {
+          imageUrl: "https://i.imgur.com/kPXg6nF.png",
+          purchaseUrl: "https://mayi2d.shop/products/wtf",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Lui16w2.png",
+          purchaseUrl: "https://mayi2d.shop/products/the-future-is-bright",
+        },
+        {
+          imageUrl: "https://i.imgur.com/NISHMQM.png",
+          purchaseUrl: "https://mayi2d.shop/products/purple-room",
+        },
+        {
+          imageUrl: "https://i.imgur.com/RFgtNCw.png",
+          purchaseUrl: "https://mayi2d.shop/products/legend-punk",
+        },
+        {
+          imageUrl: "https://i.imgur.com/AQKHdX4.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/i-tolerate-many-things-but-i-cant-tolerate-bran",
+        },
+        {
+          imageUrl: "https://i.imgur.com/lCDwzqg.png",
+          purchaseUrl: "https://mayi2d.shop/products/dear-me",
+        },
+        {
+          imageUrl: "https://i.imgur.com/A2bDvb5.png",
+          purchaseUrl: "https://mayi2d.shop/products/cow-duck",
+        },
+        {
+          imageUrl: "https://i.imgur.com/vUs3ezp.png",
+          purchaseUrl: "https://mayi2d.shop/products/red-oni",
+        },
+        {
+          imageUrl: "https://i.imgur.com/fXbc49J.png",
+          purchaseUrl: "https://mayi2d.shop/products/skeleton-cat-disco",
+        },
+        {
+          imageUrl: "https://i.imgur.com/hqZTWIb.png",
+          purchaseUrl: "https://mayi2d.shop/products/im-doing-side-quests",
+        },
+        {
+          imageUrl: "https://i.imgur.com/6PL3QQU.png",
+          purchaseUrl: "https://mayi2d.shop/products/la-blue-ice",
+        },
+        {
+          imageUrl: "https://i.imgur.com/y0PKlj4.png",
+          purchaseUrl: "https://mayi2d.shop/products/wah",
+        },
+        {
+          imageUrl: "https://i.imgur.com/bVGIDwp.png",
+          purchaseUrl: "https://mayi2d.shop/products/see-house",
+        },
+        {
+          imageUrl: "https://i.imgur.com/ECUPs7R.png",
+          purchaseUrl: "https://mayi2d.shop/products/warrior-pin",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Wh4lBna.png",
+          purchaseUrl: "https://mayi2d.shop/products/its-just-a-flesh-wound",
+        },
+        {
+          imageUrl: "https://i.imgur.com/ScKhQ3y.png",
+          purchaseUrl: "https://mayi2d.shop/products/cat-with-knife",
+        },
+        {
+          imageUrl: "https://i.imgur.com/prXigEi.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/lucky-swords-%F0%9F%97%A1%EF%B8%8F",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Ab6SXOT.png",
+          purchaseUrl: "https://mayi2d.shop/products/ranger-mask",
+        },
+        {
+          imageUrl: "https://i.imgur.com/L8sqXwg.png",
+          purchaseUrl: "https://mayi2d.shop/products/pink-mouse",
+        },
+        {
+          imageUrl: "https://i.imgur.com/uTE8O4b.png",
+          purchaseUrl: "https://mayi2d.shop/products/dr-peepee",
+        },
+        {
+          imageUrl: "https://i.imgur.com/erHLzLb.png",
+          purchaseUrl: "https://mayi2d.shop/products/seraph-cat-wings",
+        },
+        {
+          imageUrl: "https://i.imgur.com/rvCx8ym.png",
+          purchaseUrl: "https://mayi2d.shop/products/nugs-not-drugs",
+        },
+        {
+          imageUrl: "https://i.imgur.com/rC6BEDK.png",
+          purchaseUrl: "https://mayi2d.shop/products/boy-money",
+        },
+        {
+          imageUrl: "https://i.imgur.com/MswTpby.png",
+          purchaseUrl: "https://mayi2d.shop/products/pink-pistol",
+        },
+        {
+          imageUrl: "https://i.imgur.com/PrGSHhP.png",
+          purchaseUrl: "https://mayi2d.shop/products/goose-goose-drive",
+        },
+        // New 69 products (98-166)
+        {
+          imageUrl: "https://i.imgur.com/SZyg85x.png",
+          purchaseUrl: "https://mayi2d.shop/products/our-rainy-night-together",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Vf1l8lS.png",
+          purchaseUrl: "https://mayi2d.shop/products/dance-frog",
+        },
+        {
+          imageUrl: "https://i.imgur.com/vJrzH8u.png",
+          purchaseUrl: "https://mayi2d.shop/products/really",
+        },
+        {
+          imageUrl: "https://i.imgur.com/LXVPdzZ.png",
+          purchaseUrl: "https://mayi2d.shop/products/fibonacci",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Lmq94tj.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/something-that-makes-you-zone-out",
+        },
+        {
+          imageUrl: "https://i.imgur.com/pDdxXoB.png",
+          purchaseUrl: "https://mayi2d.shop/products/as-it-sways",
+        },
+        {
+          imageUrl: "https://i.imgur.com/jyMoju7.png",
+          purchaseUrl: "https://mayi2d.shop/products/wiggly-jellyfish",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Rlqrs0r.png",
+          purchaseUrl: "https://mayi2d.shop/products/believe-me-im-not-a-ghost",
+        },
+        {
+          imageUrl: "https://i.imgur.com/AJFTPXF.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/teetering-between-despair-and-darkness",
+        },
+        {
+          imageUrl: "https://i.imgur.com/yS0fYU6.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/an-elephant-with-octopus-tentacles",
+        },
+        {
+          imageUrl: "https://i.imgur.com/xJMg5zj.png",
+          purchaseUrl: "https://mayi2d.shop/products/two-birds",
+        },
+        {
+          imageUrl: "https://i.imgur.com/e4MBcKm.png",
+          purchaseUrl: "https://mayi2d.shop/products/blue-bird",
+        },
+        {
+          imageUrl: "https://i.imgur.com/7gHToMe.png",
+          purchaseUrl: "https://mayi2d.shop/products/mushroom-enamel-pin",
+        },
+        {
+          imageUrl: "https://i.imgur.com/GbgorJV.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/inspiration-old-pawn-indian-fred-bird",
+        },
+        {
+          imageUrl: "https://i.imgur.com/XmtTrNd.png",
+          purchaseUrl: "https://mayi2d.shop/products/with-hands-joined",
+        },
+        {
+          imageUrl: "https://i.imgur.com/SZyvd09.png",
+          purchaseUrl: "https://mayi2d.shop/products/neuron-potential",
+        },
+        {
+          imageUrl: "https://i.imgur.com/chrFVib.png",
+          purchaseUrl: "https://mayi2d.shop/products/peaceful-clouds",
+        },
+        {
+          imageUrl: "https://i.imgur.com/pukx8C1.png",
+          purchaseUrl: "https://mayi2d.shop/products/black-love",
+        },
+        {
+          imageUrl: "https://i.imgur.com/rkb5zVw.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/surprisingly-its-not-an-ancient-artifact-just-a-book-that-looks-like-one",
+        },
+        {
+          imageUrl: "https://i.imgur.com/NKirQGP.png",
+          purchaseUrl: "https://mayi2d.shop/products/round-muzzle",
+        },
+        {
+          imageUrl: "https://i.imgur.com/VDwCUKT.png",
+          purchaseUrl: "https://mayi2d.shop/products/eagerly-hand",
+        },
+        {
+          imageUrl: "https://i.imgur.com/keoxIUK.png",
+          purchaseUrl: "https://mayi2d.shop/products/hippie-bus",
+        },
+        {
+          imageUrl: "https://i.imgur.com/7ii0Pe2.png",
+          purchaseUrl: "https://mayi2d.shop/products/elephant-boho",
+        },
+        {
+          imageUrl: "https://i.imgur.com/JcUnlYc.png",
+          purchaseUrl: "https://mayi2d.shop/products/smile-lsd",
+        },
+        {
+          imageUrl: "https://i.imgur.com/jHj47lu.png",
+          purchaseUrl: "https://mayi2d.shop/products/the-astronaut",
+        },
+        {
+          imageUrl: "https://i.imgur.com/nr82kuE.png",
+          purchaseUrl: "https://mayi2d.shop/products/ninja-chakra",
+        },
+        {
+          imageUrl: "https://i.imgur.com/q8I54Z4.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/my-anxieties-have-anxieties",
+        },
+        {
+          imageUrl: "https://i.imgur.com/mEOKviv.png",
+          purchaseUrl: "https://mayi2d.shop/products/gotham-city",
+        },
+        {
+          imageUrl: "https://i.imgur.com/Q9kLNeZ.png",
+          purchaseUrl: "https://mayi2d.shop/products/fire-demon-set",
+        },
+        {
+          imageUrl: "https://i.imgur.com/F5o1tKT.png",
+          purchaseUrl: "https://mayi2d.shop/products/lovely-cats",
+        },
+        {
+          imageUrl: "https://i.imgur.com/S95fvPl.png",
+          purchaseUrl: "https://mayi2d.shop/products/lab-mouse-1",
+        },
+        {
+          imageUrl: "https://i.imgur.com/t0yrawI.png",
+          purchaseUrl: "https://mayi2d.shop/products/angry-red-rabbit",
+        },
+        {
+          imageUrl: "https://i.imgur.com/k5hTHgQ.png",
+          purchaseUrl: "https://mayi2d.shop/products/money-shape-1",
+        },
+        {
+          imageUrl: "https://i.imgur.com/E3EEICL.png",
+          purchaseUrl: "https://mayi2d.shop/products/rstar",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9NPdoEy.png",
+          purchaseUrl: "https://mayi2d.shop/products/btc",
+        },
+        {
+          imageUrl: "https://i.imgur.com/1jPRCDP.png",
+          purchaseUrl: "https://mayi2d.shop/products/skull-candy",
+        },
+        {
+          imageUrl: "https://i.imgur.com/vzUt3ke.jpeg",
+          purchaseUrl: "https://mayi2d.shop/products/i-tried",
+        }, // Corrected Imgur link
+        {
+          imageUrl: "https://i.imgur.com/AsePceB.png",
+          purchaseUrl: "https://mayi2d.shop/products/cat-card",
+        },
+        {
+          imageUrl: "https://i.imgur.com/FjDKimK.png",
+          purchaseUrl: "https://mayi2d.shop/products/this-is-fine",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9eEg1rP.png",
+          purchaseUrl: "https://mayi2d.shop/products/metal-chariot",
+        },
+        {
+          imageUrl: "https://i.imgur.com/N16f6kc.png",
+          purchaseUrl: "https://mayi2d.shop/products/2050-knightmare",
+        },
+        {
+          imageUrl: "https://i.imgur.com/9YAm1Ms.png",
+          purchaseUrl: "https://mayi2d.shop/products/let-it-burn",
+        },
+        {
+          imageUrl: "https://i.imgur.com/EFSH1Lz.png",
+          purchaseUrl: "https://mayi2d.shop/products/1am-ramen",
+        },
+        {
+          imageUrl: "https://i.imgur.com/zbw1jyf.png",
+          purchaseUrl: "https://mayi2d.shop/products/dinosaur-bongbong",
+        },
+        {
+          imageUrl: "https://i.imgur.com/4iDj0kV.png",
+          purchaseUrl: "https://mayi2d.shop/products/%E2%9C%9D%EF%B8%8F",
+        },
+        {
+          imageUrl: "https://i.imgur.com/QWFdy2r.png",
+          purchaseUrl: "https://mayi2d.shop/products/jesus-band",
+        },
+        {
+          imageUrl: "https://i.imgur.com/0zfAn9S.png",
+          purchaseUrl: "https://mayi2d.shop/products/cute-chameleon",
+        },
+        {
+          imageUrl: "https://i.imgur.com/rPofAT4.png",
+          purchaseUrl: "https://mayi2d.shop/products/pathetically-sad-cat",
+        },
+        {
+          imageUrl: "https://i.imgur.com/fOOL18m.png",
+          purchaseUrl: "https://mayi2d.shop/products/emblem-of-divinity",
+        },
+        {
+          imageUrl: "https://i.imgur.com/FAsrboW.png",
+          purchaseUrl: "https://mayi2d.shop/products/the-fluid-forest-tracker",
+        },
+        {
+          imageUrl: "https://i.imgur.com/0LSeR4p.png",
+          purchaseUrl: "https://mayi2d.shop/products/floral-cutie-alien",
+        },
+        {
+          imageUrl: "https://i.imgur.com/RP9RFbQ.png",
+          purchaseUrl: "https://mayi2d.shop/products/super-smash-bros",
+        },
+        {
+          imageUrl: "https://i.imgur.com/5AdYmGl.png",
+          purchaseUrl: "https://mayi2d.shop/products/sweet-duck",
+        },
+        {
+          imageUrl: "https://i.imgur.com/GMKwIQe.png",
+          purchaseUrl: "https://mayi2d.shop/products/re-1",
+        },
+        {
+          imageUrl: "https://i.imgur.com/kYitjLJ.png",
+          purchaseUrl: "https://mayi2d.shop/products/3d-game",
+        },
+        {
+          imageUrl: "https://i.imgur.com/B9rHIAF.png",
+          purchaseUrl: "https://mayi2d.shop/products/silly-juice",
+        },
+        {
+          imageUrl: "https://i.imgur.com/oXCvczU.png",
+          purchaseUrl:
+            "https://mayi2d.shop/products/came-across-some-green-crocs",
+        },
+        {
+          imageUrl: "https://i.imgur.com/hLI1zgx.png",
+          purchaseUrl: "https://mayi2d.shop/products/white-warrior",
+        },
+        {
+          imageUrl: "https://i.imgur.com/J13vxdy.png",
+          purchaseUrl: "https://mayi2d.shop/products/animal-pin",
+        },
+        {
+          imageUrl: "https://i.imgur.com/mtnb81v.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/Xsa2DmF.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/mvn1RRw.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/UYyZi89.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/Tu7B9t4.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/rYZxLEl.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/pmYZnAD.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/zEWGkkm.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/AtIkq6X.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+        {
+          imageUrl: "https://i.imgur.com/RxVUfe0.png",
+          purchaseUrl: "https://mayi2d.shop/",
+        }, // Links to homepage
+      ];
+      const imageObjectCount = 200;
+      const spread = 45;
+      const defaultBgColor = "#ffffff";
+      // --- End Configuration ---
+
+      const bgColorPicker = document.getElementById("bgColorPicker");
+      const controlsElement = document.getElementById("controls");
+      // Get references to panel elements
+      const selectedItemPanel = document.getElementById("selectedItemPanel");
+      const selectedItemImage = document.getElementById("selectedItemImage");
+      const visitSiteButton = document.getElementById("visitSiteButton");
+
+      init();
+      animate();
+
+      function init() {
+        // Basic Setup
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(
+          new THREE.Color(defaultBgColor).getHex(),
+          0.01
+        );
+
+        // 모바일 디바이스 감지
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+        // 카메라 설정 조정
+        camera = new THREE.PerspectiveCamera(
+          75,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+
+        // 모바일에서는 카메라를 더 멀리 배치
+        camera.position.z = isMobile ? 50 : 40;
+
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setClearColor(new THREE.Color(defaultBgColor).getHex());
+        document.body.appendChild(renderer.domElement);
+
+        // 컨트롤 설정 조정
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = isMobile ? 10 : 5;
+        controls.maxDistance = isMobile ? 120 : 100;
+
+        // 모바일에서 더 부드러운 컨트롤을 위해
+        if (isMobile) {
+          controls.touchDampingFactor = 0.1;
+          controls.enableZoom = true;
+          controls.enablePan = false;
+        }
+
+        // Lighting (Keep Original)
+        const ambientLight = new THREE.AmbientLight(0x808080, 1.8);
+        scene.add(ambientLight);
+        const lightColors = [0xffaa00, 0x00aaff, 0xff00ff, 0xaaffaa];
+        for (let i = 0; i < lightColors.length; i++) {
+          const pointLight = new THREE.PointLight(
+            lightColors[i],
+            2.5,
+            100,
+            1.5
+          );
+          pointLight.position.set(
+            (Math.random() - 0.5) * spread * 0.8,
+            (Math.random() - 0.5) * spread * 0.8,
+            (Math.random() - 0.5) * spread * 0.8
+          );
+          // Keep original light animation data
+          pointLight.userData.angle = Math.random() * Math.PI * 2;
+          pointLight.userData.radius = 5 + Math.random() * 15;
+          pointLight.userData.speed =
+            (Math.random() + 0.5) * 0.5 * (Math.random() > 0.5 ? 1 : -1);
+          pointLight.userData.yOffset = (Math.random() - 0.5) * 10;
+          scene.add(pointLight);
+          pointLights.push(pointLight);
+        }
+
+        // Texture loading and caching
+        const textureLoader = new THREE.TextureLoader();
+        const textureCache = new Map();
+
+        function loadTexture(url) {
+          if (textureCache.has(url)) {
+            return textureCache.get(url);
+          }
+
+          const texture = textureLoader.load(url, undefined, undefined, (err) =>
+            console.error(`Error loading texture ${url}:`, err)
+          );
+          textureCache.set(url, texture);
+          return texture;
+        }
+
+        // Create geometry once
+        const geometry = new THREE.PlaneGeometry(2.5, 2.5);
+
+        // Create image objects
+        for (let i = 0; i < imageObjectCount; i++) {
+          const productIndex = i % products.length;
+          const productData = products[productIndex];
+
+          if (!productData) continue;
+
+          // Load texture
+          const texture = loadTexture(productData.imageUrl);
+          const material = new THREE.MeshBasicMaterial({
+            map: texture,
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+            transparent: true,
+          });
+
+          const mesh = new THREE.Mesh(geometry, material);
+          mesh.position.set(
+            (Math.random() - 0.5) * spread,
+            (Math.random() - 0.5) * spread,
+            (Math.random() - 0.5) * spread
+          );
+          mesh.rotation.set(
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2,
+            Math.random() * Math.PI * 2
+          );
+
+          mesh.userData.rotationSpeed = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.01,
+            (Math.random() - 0.5) * 0.01,
+            (Math.random() - 0.5) * 0.01
+          );
+          mesh.userData.originalScale = mesh.scale.clone();
+          mesh.userData.purchaseUrl = productData.purchaseUrl;
+          mesh.userData.imageUrl = productData.imageUrl;
+
+          scene.add(mesh);
+          imageObjects.push(mesh);
+        }
+
+        // Event Listeners (Use Pointer Events)
+        window.addEventListener("resize", onWindowResize);
+
+        // 모바일 터치 이벤트 처리
+        if (isMobile) {
+          document.addEventListener("touchstart", onPointerDown, {
+            passive: false,
+          });
+          document.addEventListener(
+            "touchmove",
+            (event) => {
+              event.preventDefault();
+              const touch = event.touches[0];
+              pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
+              pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
+            },
+            { passive: false }
+          );
+        } else {
+          document.addEventListener("pointermove", (event) => {
+            const now = performance.now();
+            if (now - lastPointerMoveTime >= POINTER_MOVE_THROTTLE) {
+              lastPointerMoveTime = now;
+              onPointerMove(event);
+            }
+          });
+          document.addEventListener("pointerdown", onPointerDown);
+        }
+
+        bgColorPicker.addEventListener("input", onBgColorChange);
+
+        // Add button listener
+        visitSiteButton.addEventListener("click", () => {
+          const url = visitSiteButton.getAttribute("data-url");
+          if (url) {
+            window.open(url, "_blank");
+          }
+        });
+
+        // Set initial text colors
+        updateTextColors(defaultBgColor);
+      }
+
+      // --- Helper Functions ---
+      function onBgColorChange(event) {
+        // ... (Function remains the same)
+        const newColor = event.target.value;
+        document.body.style.backgroundColor = newColor;
+        if (scene.fog) {
+          scene.fog.color.set(newColor);
+        }
+        renderer.setClearColor(newColor);
+        updateTextColors(newColor);
+      }
+
+      function getLuminance(hexColor) {
+        // ... (Function remains the same)
+        let hex = hexColor.replace("#", "");
+        if (hex.length === 3)
+          hex = hex
+            .split("")
+            .map((char) => char + char)
+            .join("");
+        const r = parseInt(hex.substring(0, 2), 16) / 255;
+        const g = parseInt(hex.substring(2, 4), 16) / 255;
+        const b = parseInt(hex.substring(4, 6), 16) / 255;
+        const R = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+        const G = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+        const B = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+        return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+      }
+
+      // Updated to handle panel text color
+      function updateTextColors(bgColorHex) {
+        // ... (Function remains the same)
+        const luminance = getLuminance(bgColorHex);
+        const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
+        const controlsBgColor =
+          luminance > 0.5 ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)";
+        if (controlsElement) {
+          controlsElement.style.color = textColor;
+          controlsElement.style.backgroundColor = controlsBgColor;
+          const label = controlsElement.querySelector("label");
+          if (label) label.style.color = textColor;
+          const panelTitle = selectedItemPanel.querySelector("h4");
+          if (panelTitle) panelTitle.style.color = textColor;
+        }
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // 모바일에서 더 나은 성능을 위해 픽셀 비율 조정
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        renderer.setPixelRatio(
+          isMobile
+            ? Math.min(window.devicePixelRatio, 2)
+            : window.devicePixelRatio
+        );
+      }
+
+      // Use onPointerMove for Mouse/Touch
+      function onPointerMove(event) {
+        // ... (Function remains the same)
+        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      }
+
+      // Use onPointerDown for Click/Tap - Activates Panel
+      function onPointerDown(event) {
+        // ... (Function remains the same)
+        if (controlsElement.contains(event.target)) return;
+
+        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(imageObjects);
+
+        if (intersects.length > 0) {
+          const clickedObject = intersects[0].object;
+          const purchaseUrl = clickedObject.userData.purchaseUrl;
+          const imageUrl = clickedObject.userData.imageUrl;
+
+          if (purchaseUrl && imageUrl) {
+            selectedItemImage.src = imageUrl;
+            selectedItemImage.alt =
+              "Selected product: " + imageUrl.split("/").pop();
+            visitSiteButton.setAttribute("data-url", purchaseUrl);
+            selectedItemPanel.style.display = "block";
+          }
+        } else {
+          selectedItemPanel.style.display = "none";
+        }
+      }
+
+      // Animate function keeps original rotations and light movements
+      function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+
+        // Update rotations
+        imageObjects.forEach((mesh) => {
+          mesh.rotation.x += mesh.userData.rotationSpeed.x;
+          mesh.rotation.y += mesh.userData.rotationSpeed.y;
+          mesh.rotation.z += mesh.userData.rotationSpeed.z;
+        });
+
+        pointLights.forEach((light) => {
+          light.userData.angle += light.userData.speed * delta;
+          light.position.set(
+            Math.cos(light.userData.angle) * light.userData.radius,
+            Math.sin(elapsedTime * light.userData.speed * 1.5) * 5 +
+              light.userData.yOffset,
+            Math.sin(light.userData.angle) * light.userData.radius
+          );
+        });
+        handleIntersections();
+        controls.update();
+        renderer.render(scene, camera);
+      }
+
+      function handleIntersections() {
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(imageObjects);
+
+        if (intersects.length > 0) {
+          if (INTERSECTED !== intersects[0].object) {
+            if (INTERSECTED) {
+              INTERSECTED.scale.copy(INTERSECTED.userData.originalScale);
+            }
+            INTERSECTED = intersects[0].object;
+            INTERSECTED.scale
+              .copy(INTERSECTED.userData.originalScale)
+              .multiplyScalar(1.2);
+          }
+        } else {
+          if (INTERSECTED) {
+            INTERSECTED.scale.copy(INTERSECTED.userData.originalScale);
+          }
+          INTERSECTED = null;
+        }
+      }
+    </script>
+  </body>
+</html>
