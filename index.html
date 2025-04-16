@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Interactive Product Visualizer (200 Objects)</title>
+    <title>Interactive Product Visualizer (Optimized)</title>
     <style>
       body {
         margin: 0;
@@ -18,110 +18,139 @@
         width: 100%;
         height: 100%;
       }
-      /* Responsive Controls CSS */
+      #loader {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 1.2em;
+        color: #555;
+        z-index: 101; /* Ensure loader is above canvas */
+      }
       #controls {
         position: absolute;
-        top: 10px;
-        left: 10px;
+        top: 15px;
+        left: 15px;
         z-index: 100;
-        background-color: rgba(255, 255, 255, 0.7);
-        padding: 10px;
-        border-radius: 5px;
-        color: #000000;
-        max-height: 85vh; /* Slightly reduced height */
+        background-color: rgba(30, 30, 30, 0.75);
+        color: #ffffff;
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        max-height: 85vh;
         overflow-y: auto;
-        max-width: 90%; /* Limit width on small screens */
-        box-sizing: border-box; /* Include padding in width */
-        touch-action: none; /* 모바일 터치 동작 최적화 */
+        max-width: 90%;
+        box-sizing: border-box;
+        touch-action: auto;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        transition: background-color 0.3s ease, color 0.3s ease,
+          border-color 0.3s ease;
       }
-      /* Max width for larger screens */
       @media (min-width: 600px) {
         #controls {
           max-width: 280px;
         }
       }
-      /* 모바일 최적화 */
       @media (max-width: 768px) {
         #controls {
-          padding: 8px;
+          padding: 10px;
           font-size: 14px;
+          top: 10px;
+          left: 10px;
         }
         #logoImage {
           height: 30px;
+          margin-bottom: 15px;
         }
         #bgColorPicker {
           width: 40px;
           height: 20px;
         }
         #visitSiteButton {
-          padding: 6px;
-          font-size: 0.8em;
+          padding: 8px;
+          font-size: 0.9em;
         }
       }
       #logoImage {
         display: block;
-        height: 40px; /* Logo height */
+        height: 40px;
         width: auto;
-        margin-bottom: 10px; /* Space below logo */
+        margin-bottom: 20px;
       }
       #controls label {
-        margin-right: 5px;
-        vertical-align: middle;
+        margin-bottom: 8px;
+        display: block;
+        font-weight: 600;
+        font-size: 0.9em;
+      }
+      #controls h4 {
+        margin: 0 0 10px 0;
+        font-size: 1.1em;
+        font-weight: 600;
       }
       #bgColorPicker {
         vertical-align: middle;
         cursor: pointer;
-        border: 1px solid #ccc;
+        border: 1px solid rgba(128, 128, 128, 0.5);
         width: 50px;
         height: 25px;
+        margin-left: 5px;
+        border-radius: 4px;
       }
-      /* --- Style for Selected Item Panel --- */
       #selectedItemPanel {
         margin-top: 15px;
-        padding-top: 10px;
-        border-top: 1px solid #ccc;
-        display: none; /* Initially hidden */
-      }
-      #selectedItemPanel h4 {
-        margin: 0 0 5px 0;
-        font-size: 1em;
+        padding-top: 15px;
+        border-top: 1px solid rgba(128, 128, 128, 0.5);
+        display: none;
       }
       #selectedItemImage {
         max-width: 100%;
         height: auto;
         margin-bottom: 10px;
-        border: 1px solid #eee;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
       }
       #visitSiteButton {
         display: block;
         width: 100%;
-        padding: 8px;
-        margin-top: 5px;
-        background-color: #007bff;
+        padding: 10px 12px;
+        margin-top: 10px;
+        background: linear-gradient(45deg, #007bff, #0056b3);
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 5px;
         cursor: pointer;
         text-align: center;
-        font-size: 0.9em;
+        font-size: 0.95em;
+        font-weight: 600;
+        transition: background 0.3s ease, transform 0.1s ease;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
       }
       #visitSiteButton:hover {
-        background-color: #0056b3;
+        background: linear-gradient(45deg, #0069d9, #004ca0);
+        transform: translateY(-1px);
       }
-      /* --- End Style --- */
+      #visitSiteButton:disabled {
+        background: #555;
+        color: #aaa;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
     </style>
   </head>
   <body>
     <div id="controls">
       <img
         id="logoImage"
-        src="https://mayi2d.shop/cdn/shop/files/2025-03-27_10.25.03.png?v=1743198292&width=180"
+        src="https://i.imgur.com/fgJ3rAV.png"
         alt="May I 2D Logo"
       />
 
       <div>
         <label for="bgColorPicker">Background Color:</label>
-        <input type="color" id="bgColorPicker" value="#ffffff" />
+        <input type="color" id="bgColorPicker" value="#000000" />
       </div>
 
       <div id="selectedItemPanel">
@@ -130,6 +159,7 @@
         <button id="visitSiteButton" data-url="">Visit Site</button>
       </div>
     </div>
+    <div id="loader">로딩 중... 0%</div>
     <script type="importmap">
       {
         "imports": {
@@ -142,27 +172,34 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-      let scene, camera, renderer, controls;
-      let imageObjects = [];
-      let pointLights = [];
-      const raycaster = new THREE.Raycaster();
-      const pointer = new THREE.Vector2();
-      let INTERSECTED;
-      const clock = new THREE.Clock();
-      let lastPointerMoveTime = 0;
-      const POINTER_MOVE_THROTTLE = 16; // ~60fps
+      // --- Configuration Constants ---
+      const CONFIG = {
+        IMAGE_OBJECT_COUNT: 200,
+        SPREAD_RANGE: 60,
+        DEFAULT_BG_COLOR: "#000000",
+        HOVER_SCALE_FACTOR: 1.2,
+        CLICK_PLANE_SCALE: 1.5,
+        CAMERA: {
+          MOBILE: { Z: 50, MIN_DISTANCE: 10, MAX_DISTANCE: 120 },
+          DESKTOP: { Z: 40, MIN_DISTANCE: 5, MAX_DISTANCE: 100 },
+        },
+        LIGHT: {
+          AMBIENT: { COLOR: 0x808080, INTENSITY: 1.8 },
+          POINT: {
+            COLORS: [0xffaa00, 0x00aaff, 0xff00ff, 0xaaffaa],
+            INTENSITY: 2.5,
+            DISTANCE: 100,
+            DECAY: 1.5,
+          },
+        },
+        ANIMATION: {
+          THROTTLE: 16, // ~60fps for pointermove throttle
+          ROTATION_SPEED: 0.01,
+        },
+      };
 
-      // --- Configuration ---
-      /* 🚨 Performance Warning: Displaying 200 objects with individual rotations and lights
-       * can cause significant performance issues (lag, stuttering), especially on mobile devices
-       * or less powerful computers. Consider reducing imageObjectCount if performance is poor.
-       * For major optimization, consider using THREE.InstancedMesh.
-       */
-      // --- Configuration ---
-      /* 🚨 Performance Warning: Displaying 200 objects can be demanding. */
-      // *** Updated Product List (Total 166 products) ***
+      // --- Product Data ---
       const products = [
-        // Previous 97
         {
           imageUrl: "https://i.imgur.com/px60C11.png",
           purchaseUrl: "https://mayi2d.shop/products/rose-little-prince",
@@ -558,7 +595,6 @@
           imageUrl: "https://i.imgur.com/PrGSHhP.png",
           purchaseUrl: "https://mayi2d.shop/products/goose-goose-drive",
         },
-        // New 69 products (98-166)
         {
           imageUrl: "https://i.imgur.com/SZyg85x.png",
           purchaseUrl: "https://mayi2d.shop/products/our-rainy-night-together",
@@ -712,7 +748,7 @@
         {
           imageUrl: "https://i.imgur.com/vzUt3ke.jpeg",
           purchaseUrl: "https://mayi2d.shop/products/i-tried",
-        }, // Corrected Imgur link
+        },
         {
           imageUrl: "https://i.imgur.com/AsePceB.png",
           purchaseUrl: "https://mayi2d.shop/products/cat-card",
@@ -802,374 +838,801 @@
           imageUrl: "https://i.imgur.com/J13vxdy.png",
           purchaseUrl: "https://mayi2d.shop/products/animal-pin",
         },
+        // Example products pointing to base shop URL
         {
           imageUrl: "https://i.imgur.com/mtnb81v.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/Xsa2DmF.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/mvn1RRw.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/UYyZi89.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/Tu7B9t4.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/rYZxLEl.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/pmYZnAD.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/zEWGkkm.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/AtIkq6X.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
         {
           imageUrl: "https://i.imgur.com/RxVUfe0.png",
           purchaseUrl: "https://mayi2d.shop/",
-        }, // Links to homepage
+        },
       ];
-      const imageObjectCount = 200;
-      const spread = 45;
-      const defaultBgColor = "#ffffff";
-      // --- End Configuration ---
 
+      // --- State Management ---
+      let scene, camera, renderer, controls;
+      const instancedMeshes = []; // Array to hold multiple InstancedMesh objects
+      const raycastMeshes = []; // Array to hold transparent InstancedMesh objects
+      const instanceData = []; // Holds data for all 200 conceptual instances
+      const pointLights = [];
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2();
+      let INTERSECTED_INFO = null; // { originalIndex, meshGroup, localInstanceId }
+      const clock = new THREE.Clock();
+      const textureCache = new Map();
+      let sharedPlaneGeometry; // Single geometry instance
+      let sharedRaycastGeometry; // Single geometry instance for transparent mesh
+      let sharedRaycastMaterial; // Single material instance for transparent mesh
+      let texturesLoaded = 0; // Track number of textures loaded
+      let totalTexturesToLoad = 0; // Total number of textures to load
+
+      let particleSystem; // Particle system for visual effects
+
+      // 호버 효과용 색상 변수
+      const hoverColor = new THREE.Color(1, 1, 0.6); // 호버 시 적용할 색상 (약간 노란빛 도는 흰색)
+      const normalColor = new THREE.Color(1, 1, 1); // 기본 색상 (흰색)
+
+      // --- DOM Elements ---
       const bgColorPicker = document.getElementById("bgColorPicker");
       const controlsElement = document.getElementById("controls");
-      // Get references to panel elements
       const selectedItemPanel = document.getElementById("selectedItemPanel");
       const selectedItemImage = document.getElementById("selectedItemImage");
       const visitSiteButton = document.getElementById("visitSiteButton");
+      const loaderElement = document.getElementById("loader");
+      const logoImageElement = document.getElementById("logoImage");
 
+      // --- Temporary Objects (Prevent GC) ---
+      const tempMatrix = new THREE.Matrix4();
+      const tempObject = new THREE.Object3D(); // Used for matrix composition
+      const tempPosition = new THREE.Vector3();
+      const tempQuaternion = new THREE.Quaternion();
+      const tempScale = new THREE.Vector3(1, 1, 1);
+      const hoverScaleVec = new THREE.Vector3(
+        CONFIG.HOVER_SCALE_FACTOR,
+        CONFIG.HOVER_SCALE_FACTOR,
+        CONFIG.HOVER_SCALE_FACTOR
+      );
+      const normalScaleVec = new THREE.Vector3(1, 1, 1);
+
+      // --- Initialization ---
       init();
       animate();
 
-      function init() {
-        // Basic Setup
-        scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(
-          new THREE.Color(defaultBgColor).getHex(),
-          0.01
-        );
-
-        // 모바일 디바이스 감지
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-        // 카메라 설정 조정
-        camera = new THREE.PerspectiveCamera(
-          75,
-          window.innerWidth / window.innerHeight,
-          0.1,
-          1000
-        );
-
-        // 모바일에서는 카메라를 더 멀리 배치
-        camera.position.z = isMobile ? 50 : 40;
-
-        renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
-        renderer.setClearColor(new THREE.Color(defaultBgColor).getHex());
-        document.body.appendChild(renderer.domElement);
-
-        // 컨트롤 설정 조정
-        controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.minDistance = isMobile ? 10 : 5;
-        controls.maxDistance = isMobile ? 120 : 100;
-
-        // 모바일에서 더 부드러운 컨트롤을 위해
-        if (isMobile) {
-          controls.touchDampingFactor = 0.1;
-          controls.enableZoom = true;
-          controls.enablePan = false;
-        }
-
-        // Lighting (Keep Original)
-        const ambientLight = new THREE.AmbientLight(0x808080, 1.8);
-        scene.add(ambientLight);
-        const lightColors = [0xffaa00, 0x00aaff, 0xff00ff, 0xaaffaa];
-        for (let i = 0; i < lightColors.length; i++) {
-          const pointLight = new THREE.PointLight(
-            lightColors[i],
-            2.5,
-            100,
-            1.5
-          );
-          pointLight.position.set(
-            (Math.random() - 0.5) * spread * 0.8,
-            (Math.random() - 0.5) * spread * 0.8,
-            (Math.random() - 0.5) * spread * 0.8
-          );
-          // Keep original light animation data
-          pointLight.userData.angle = Math.random() * Math.PI * 2;
-          pointLight.userData.radius = 5 + Math.random() * 15;
-          pointLight.userData.speed =
-            (Math.random() + 0.5) * 0.5 * (Math.random() > 0.5 ? 1 : -1);
-          pointLight.userData.yOffset = (Math.random() - 0.5) * 10;
-          scene.add(pointLight);
-          pointLights.push(pointLight);
-        }
-
-        // Texture loading and caching
-        const textureLoader = new THREE.TextureLoader();
-        const textureCache = new Map();
-
-        function loadTexture(url) {
-          if (textureCache.has(url)) {
-            return textureCache.get(url);
+      async function init() {
+        try {
+          // 로고 이미지 URL 변경
+          if (logoImageElement) {
+            logoImageElement.src = "https://i.imgur.com/fgJ3rAV.png";
           }
 
-          const texture = textureLoader.load(url, undefined, undefined, (err) =>
-            console.error(`Error loading texture ${url}:`, err)
+          // Scene Setup
+          scene = new THREE.Scene();
+          scene.fog = new THREE.FogExp2(
+            new THREE.Color(CONFIG.DEFAULT_BG_COLOR).getHex(),
+            0.01
           );
-          textureCache.set(url, texture);
-          return texture;
-        }
 
-        // Create geometry once
-        const geometry = new THREE.PlaneGeometry(2.5, 2.5);
+          // Device Detection
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(
+            navigator.userAgent
+          );
 
-        // Create image objects
-        for (let i = 0; i < imageObjectCount; i++) {
-          const productIndex = i % products.length;
-          const productData = products[productIndex];
+          // Camera Setup
+          camera = new THREE.PerspectiveCamera(
+            75,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            1000
+          );
+          camera.position.z = isMobile
+            ? CONFIG.CAMERA.MOBILE.Z
+            : CONFIG.CAMERA.DESKTOP.Z;
 
-          if (!productData) continue;
+          // Renderer Setup
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: "high-performance",
+          });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          renderer.setClearColor(
+            new THREE.Color(CONFIG.DEFAULT_BG_COLOR).getHex()
+          );
+          document.body.appendChild(renderer.domElement);
 
-          // Load texture
-          const texture = loadTexture(productData.imageUrl);
-          const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            color: 0xffffff,
-            side: THREE.DoubleSide,
-            transparent: true,
+          // Controls Setup
+          controls = new OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = true;
+          controls.dampingFactor = 0.05;
+          controls.screenSpacePanning = false;
+          controls.minDistance = isMobile
+            ? CONFIG.CAMERA.MOBILE.MIN_DISTANCE
+            : CONFIG.CAMERA.DESKTOP.MIN_DISTANCE;
+          controls.maxDistance = isMobile
+            ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE
+            : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE;
+
+          if (isMobile) {
+            controls.enableZoom = true;
+            controls.enablePan = true;
+          }
+
+          // Lighting Setup
+          const ambientLight = new THREE.AmbientLight(
+            CONFIG.LIGHT.AMBIENT.COLOR,
+            CONFIG.LIGHT.AMBIENT.INTENSITY
+          );
+          scene.add(ambientLight);
+
+          CONFIG.LIGHT.POINT.COLORS.forEach((color) => {
+            const pointLight = new THREE.PointLight(
+              color,
+              CONFIG.LIGHT.POINT.INTENSITY,
+              CONFIG.LIGHT.POINT.DISTANCE,
+              CONFIG.LIGHT.POINT.DECAY
+            );
+            pointLight.position.set(
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2,
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2,
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2
+            );
+            pointLight.userData = {
+              angle: Math.random() * Math.PI * 2,
+              radius: 10 + Math.random() * 20,
+              speed:
+                (Math.random() + 0.5) * 0.4 * (Math.random() > 0.5 ? 1 : -1),
+              yOffset: (Math.random() - 0.5) * 15,
+            };
+            scene.add(pointLight);
+            pointLights.push(pointLight);
           });
 
-          const mesh = new THREE.Mesh(geometry, material);
-          mesh.position.set(
-            (Math.random() - 0.5) * spread,
-            (Math.random() - 0.5) * spread,
-            (Math.random() - 0.5) * spread
-          );
-          mesh.rotation.set(
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2,
-            Math.random() * Math.PI * 2
-          );
+          // --- 파티클 시스템 생성 ---
+          function createParticles() {
+            const particleCount = 7000;
+            const positions = new Float32Array(particleCount * 3);
+            const particleSpreadRadius = 150;
 
-          mesh.userData.rotationSpeed = new THREE.Vector3(
-            (Math.random() - 0.5) * 0.01,
-            (Math.random() - 0.5) * 0.01,
-            (Math.random() - 0.5) * 0.01
-          );
-          mesh.userData.originalScale = mesh.scale.clone();
-          mesh.userData.purchaseUrl = productData.purchaseUrl;
-          mesh.userData.imageUrl = productData.imageUrl;
+            for (let i = 0; i < particleCount; i++) {
+              const i3 = i * 3;
+              const u = Math.random();
+              const v = Math.random();
+              const theta = 2 * Math.PI * u;
+              const phi = Math.acos(2 * v - 1);
+              const r = Math.cbrt(Math.random()) * particleSpreadRadius;
 
-          scene.add(mesh);
-          imageObjects.push(mesh);
+              positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+              positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+              positions[i3 + 2] = r * Math.cos(phi);
+            }
+
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute(
+              "position",
+              new THREE.BufferAttribute(positions, 3)
+            );
+
+            const material = new THREE.PointsMaterial({
+              color: 0xffffff,
+              size: 0.1,
+              sizeAttenuation: true,
+              transparent: true,
+              opacity: 0.75,
+              depthWrite: false,
+            });
+
+            particleSystem = new THREE.Points(geometry, material);
+            scene.add(particleSystem);
+            console.log("파티클 시스템이 생성되었습니다.");
+          }
+
+          createParticles();
+
+          // Create shared geometry
+          sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
+          sharedRaycastGeometry = new THREE.PlaneGeometry(
+            2.5 * CONFIG.CLICK_PLANE_SCALE,
+            2.5 * CONFIG.CLICK_PLANE_SCALE
+          );
+          sharedRaycastMaterial = new THREE.MeshBasicMaterial({
+            visible: false,
+            side: THREE.DoubleSide,
+          });
+
+          // Load and setup instances
+          await setupGroupedInstances();
+
+          // Event Listeners
+          setupEventListeners();
+        } catch (error) {
+          console.error("Initialization error:", error);
+          showError(
+            "초기화 중 오류가 발생했습니다. 페이지를 새로고침해주세요."
+          );
+          if (loaderElement) loaderElement.textContent = "오류 발생!";
+        }
+      }
+
+      async function setupGroupedInstances() {
+        const loadingManager = new THREE.LoadingManager();
+        texturesLoaded = 0;
+        totalTexturesToLoad = 0;
+
+        loadingManager.onProgress = (url, loaded, total) => {
+          // Progress is handled by our custom tracking
+        };
+
+        loadingManager.onLoad = () => {
+          console.log("Loading manager finished.");
+        };
+
+        loadingManager.onError = (url) => {
+          console.error("Error loading texture via manager:", url);
+          checkLoadingComplete();
+        };
+
+        const textureLoader = new THREE.TextureLoader(loadingManager);
+        textureLoader.setCrossOrigin("anonymous");
+
+        // Group instances by texture URL
+        const groupedInstances = new Map();
+        for (let i = 0; i < CONFIG.IMAGE_OBJECT_COUNT; i++) {
+          const productIndex = i % products.length;
+          const product = products[productIndex];
+
+          if (!product || !product.imageUrl) {
+            console.warn(`Skipping instance ${i}: Missing product or imageUrl`);
+            continue;
+          }
+
+          if (!groupedInstances.has(product.imageUrl)) {
+            groupedInstances.set(product.imageUrl, {
+              product: product,
+              originalIndices: [],
+            });
+          }
+          groupedInstances.get(product.imageUrl).originalIndices.push(i);
+
+          instanceData[i] = {
+            purchaseUrl: product.purchaseUrl,
+            imageUrl: product.imageUrl,
+            rotationSpeed: new THREE.Vector3(
+              (Math.random() - 0.5) * CONFIG.ANIMATION.ROTATION_SPEED,
+              (Math.random() - 0.5) * CONFIG.ANIMATION.ROTATION_SPEED,
+              (Math.random() - 0.5) * CONFIG.ANIMATION.ROTATION_SPEED
+            ),
+            visibleMeshGroup: null,
+            raycastMeshGroup: null,
+            localInstanceId: -1,
+          };
         }
 
-        // Event Listeners (Use Pointer Events)
+        totalTexturesToLoad = groupedInstances.size;
+        if (loaderElement)
+          updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+
+        const loadPromises = [];
+
+        for (const [imageUrl, group] of groupedInstances.entries()) {
+          const loadPromise = loadTexture(textureLoader, imageUrl)
+            .then((texture) => {
+              texturesLoaded++;
+              updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+
+              // 보이는 메쉬 그룹 생성
+              const visibleMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                alphaTest: 0.1,
+                vertexColors: false,
+              });
+              const visibleMeshGroup = new THREE.InstancedMesh(
+                sharedPlaneGeometry,
+                visibleMaterial,
+                group.originalIndices.length
+              );
+
+              // 초기 색상 설정
+              for (let j = 0; j < group.originalIndices.length; j++) {
+                visibleMeshGroup.setColorAt(j, normalColor);
+              }
+              if (visibleMeshGroup.instanceColor) {
+                visibleMeshGroup.instanceColor.needsUpdate = true;
+              }
+
+              visibleMeshGroup.userData.imageUrl = imageUrl;
+              scene.add(visibleMeshGroup);
+              instancedMeshes.push(visibleMeshGroup);
+
+              // 클릭 감지용 메쉬 그룹 생성
+              const raycastMeshGroup = new THREE.InstancedMesh(
+                sharedRaycastGeometry,
+                sharedRaycastMaterial,
+                group.originalIndices.length
+              );
+              scene.add(raycastMeshGroup);
+              raycastMeshes.push(raycastMeshGroup);
+
+              group.originalIndices.forEach((originalIndex, localIndex) => {
+                tempPosition.set(
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE
+                );
+
+                tempQuaternion.setFromEuler(
+                  new THREE.Euler(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                  )
+                );
+
+                tempScale.set(1, 1, 1);
+
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                visibleMeshGroup.setMatrixAt(localIndex, tempMatrix);
+                raycastMeshGroup.setMatrixAt(localIndex, tempMatrix);
+
+                if (instanceData[originalIndex]) {
+                  instanceData[originalIndex].visibleMeshGroup =
+                    visibleMeshGroup;
+                  instanceData[originalIndex].raycastMeshGroup =
+                    raycastMeshGroup;
+                  instanceData[originalIndex].localInstanceId = localIndex;
+                }
+              });
+
+              visibleMeshGroup.instanceMatrix.needsUpdate = true;
+              raycastMeshGroup.instanceMatrix.needsUpdate = true;
+            })
+            .catch((error) => {
+              texturesLoaded++;
+              updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+              console.error(`Failed to load texture ${imageUrl}:`, error);
+            });
+
+          loadPromises.push(loadPromise);
+        }
+
+        await Promise.allSettled(loadPromises);
+        checkLoadingComplete();
+      }
+
+      function updateLoaderProgress(loaded, total) {
+        if (loaderElement) {
+          const percentage =
+            total > 0 ? Math.round((loaded / total) * 100) : 100;
+          loaderElement.textContent = `로딩 중... ${loaded}/${total} (${percentage}%)`;
+        }
+      }
+
+      function checkLoadingComplete() {
+        if (loaderElement && loaderElement.style.display !== "none") {
+          const allTexturesProcessed = texturesLoaded >= totalTexturesToLoad;
+          if (allTexturesProcessed) {
+            loaderElement.style.display = "none";
+            console.log("All textures processed, setup complete.");
+          }
+        }
+      }
+
+      function setupEventListeners() {
         window.addEventListener("resize", onWindowResize);
 
-        // 모바일 터치 이벤트 처리
-        if (isMobile) {
-          document.addEventListener("touchstart", onPointerDown, {
-            passive: false,
-          });
-          document.addEventListener(
-            "touchmove",
-            (event) => {
-              event.preventDefault();
-              const touch = event.touches[0];
-              pointer.x = (touch.clientX / window.innerWidth) * 2 - 1;
-              pointer.y = -(touch.clientY / window.innerHeight) * 2 + 1;
-            },
-            { passive: false }
-          );
-        } else {
-          document.addEventListener("pointermove", (event) => {
-            const now = performance.now();
-            if (now - lastPointerMoveTime >= POINTER_MOVE_THROTTLE) {
-              lastPointerMoveTime = now;
-              onPointerMove(event);
-            }
-          });
-          document.addEventListener("pointerdown", onPointerDown);
-        }
+        // Use pointer events for unified mouse/touch handling where possible
+        document.addEventListener(
+          "pointermove",
+          throttle(onPointerMove, CONFIG.ANIMATION.THROTTLE)
+        );
+        document.addEventListener("pointerdown", onPointerDown); // Handles both click and tap start
+
+        // Specific touch events for finer control if needed (e.g., preventing scroll while dragging)
+        // document.addEventListener('touchstart', onTouchStart, { passive: false });
+        // document.addEventListener('touchmove', onTouchMove, { passive: false }); // Already handled by pointermove + OrbitControls
 
         bgColorPicker.addEventListener("input", onBgColorChange);
+        visitSiteButton.addEventListener("click", onVisitSiteClick);
 
-        // Add button listener
-        visitSiteButton.addEventListener("click", () => {
-          const url = visitSiteButton.getAttribute("data-url");
-          if (url) {
-            window.open(url, "_blank");
+        // Prevent controls from interfering with OrbitControls drag
+        controlsElement.addEventListener("pointerdown", (e) =>
+          e.stopPropagation()
+        );
+        controlsElement.addEventListener("touchstart", (e) =>
+          e.stopPropagation()
+        ); // For safety on older devices
+      }
+
+      function throttle(func, limit) {
+        let inThrottle;
+        let lastExecutionTime = 0;
+        return function (...args) {
+          const now = Date.now();
+          if (!inThrottle) {
+            // Execute immediately if not throttled
+            func.apply(this, args);
+            lastExecutionTime = now;
+            inThrottle = true;
+            setTimeout(() => {
+              inThrottle = false;
+              // Optional: Check if another event happened during throttle period and execute it now
+              // This makes it feel slightly more responsive on the last event
+            }, limit);
           }
-        });
-
-        // Set initial text colors
-        updateTextColors(defaultBgColor);
-      }
-
-      // --- Helper Functions ---
-      function onBgColorChange(event) {
-        // ... (Function remains the same)
-        const newColor = event.target.value;
-        document.body.style.backgroundColor = newColor;
-        if (scene.fog) {
-          scene.fog.color.set(newColor);
-        }
-        renderer.setClearColor(newColor);
-        updateTextColors(newColor);
-      }
-
-      function getLuminance(hexColor) {
-        // ... (Function remains the same)
-        let hex = hexColor.replace("#", "");
-        if (hex.length === 3)
-          hex = hex
-            .split("")
-            .map((char) => char + char)
-            .join("");
-        const r = parseInt(hex.substring(0, 2), 16) / 255;
-        const g = parseInt(hex.substring(2, 4), 16) / 255;
-        const b = parseInt(hex.substring(4, 6), 16) / 255;
-        const R = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
-        const G = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
-        const B = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
-        return 0.2126 * R + 0.7152 * G + 0.0722 * B;
-      }
-
-      // Updated to handle panel text color
-      function updateTextColors(bgColorHex) {
-        // ... (Function remains the same)
-        const luminance = getLuminance(bgColorHex);
-        const textColor = luminance > 0.5 ? "#000000" : "#ffffff";
-        const controlsBgColor =
-          luminance > 0.5 ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.5)";
-        if (controlsElement) {
-          controlsElement.style.color = textColor;
-          controlsElement.style.backgroundColor = controlsBgColor;
-          const label = controlsElement.querySelector("label");
-          if (label) label.style.color = textColor;
-          const panelTitle = selectedItemPanel.querySelector("h4");
-          if (panelTitle) panelTitle.style.color = textColor;
-        }
+          // else { // Optionally queue or track the last event during throttle }
+        };
       }
 
       function onWindowResize() {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
-
-        // 모바일에서 더 나은 성능을 위해 픽셀 비율 조정
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        renderer.setPixelRatio(
-          isMobile
-            ? Math.min(window.devicePixelRatio, 2)
-            : window.devicePixelRatio
-        );
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       }
 
-      // Use onPointerMove for Mouse/Touch
+      // Combined pointer move handler
       function onPointerMove(event) {
-        // ... (Function remains the same)
+        // Update pointer coordinates relative to the canvas
         pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Handle hover effect (raycasting)
+        handleIntersections(false); // Pass false: don't trigger selection
       }
 
-      // Use onPointerDown for Click/Tap - Activates Panel
+      // Combined pointer down handler (click/tap start)
       function onPointerDown(event) {
-        // ... (Function remains the same)
+        // Ignore clicks/taps on the UI controls
         if (controlsElement.contains(event.target)) return;
 
+        // Update pointer coordinates (might be redundant if pointermove fired just before, but safe)
         pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(imageObjects);
+        // Handle selection (raycasting and triggering selection logic)
+        handleIntersections(true); // Pass true: trigger selection
+      }
 
-        if (intersects.length > 0) {
-          const clickedObject = intersects[0].object;
-          const purchaseUrl = clickedObject.userData.purchaseUrl;
-          const imageUrl = clickedObject.userData.imageUrl;
+      function onBgColorChange(event) {
+        const newColor = event.target.value;
+        document.body.style.backgroundColor = newColor;
+        const threeColor = new THREE.Color(newColor);
+        if (scene.fog) {
+          scene.fog.color.set(threeColor);
+        }
+        renderer.setClearColor(threeColor);
+      }
 
-          if (purchaseUrl && imageUrl) {
-            selectedItemImage.src = imageUrl;
-            selectedItemImage.alt =
-              "Selected product: " + imageUrl.split("/").pop();
-            visitSiteButton.setAttribute("data-url", purchaseUrl);
-            selectedItemPanel.style.display = "block";
-          }
-        } else {
-          selectedItemPanel.style.display = "none";
+      function onVisitSiteClick() {
+        const url = visitSiteButton.getAttribute("data-url");
+        if (url && url !== "https://mayi2d.shop/") {
+          // Avoid opening base URL if it's a placeholder
+          window.open(url, "_blank");
+        } else if (url) {
+          console.log("Visit site clicked for base URL:", url);
         }
       }
 
-      // Animate function keeps original rotations and light movements
+      function handleIntersections(isSelectionAttempt) {
+        raycaster.setFromCamera(pointer, camera);
+        const intersects = raycaster.intersectObjects(raycastMeshes);
+
+        let newIntersectedInfo = null;
+
+        if (intersects.length > 0) {
+          const intersect = intersects[0];
+          const raycastMeshGroup = intersect.object;
+          const localInstanceId = intersect.instanceId;
+
+          const originalIndex = instanceData.findIndex(
+            (data) =>
+              data &&
+              data.raycastMeshGroup === raycastMeshGroup &&
+              data.localInstanceId === localInstanceId
+          );
+
+          if (originalIndex !== -1) {
+            const visibleMeshGroup =
+              instanceData[originalIndex].visibleMeshGroup;
+            if (visibleMeshGroup) {
+              newIntersectedInfo = {
+                originalIndex,
+                meshGroup: visibleMeshGroup,
+                localInstanceId,
+              };
+            }
+          }
+        }
+
+        // --- Handle Hover Effect (Scale and Color Change) ---
+        if (
+          INTERSECTED_INFO?.originalIndex !== newIntersectedInfo?.originalIndex
+        ) {
+          // Reset scale and color on previously hovered item
+          if (INTERSECTED_INFO) {
+            const oldData = instanceData[INTERSECTED_INFO.originalIndex];
+            if (oldData?.visibleMeshGroup && oldData.localInstanceId !== -1) {
+              try {
+                // Reset Scale
+                INTERSECTED_INFO.meshGroup.getMatrixAt(
+                  INTERSECTED_INFO.localInstanceId,
+                  tempMatrix
+                );
+                tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+                if (!tempScale.equals(normalScaleVec)) {
+                  tempScale.copy(normalScaleVec);
+                  tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                  INTERSECTED_INFO.meshGroup.setMatrixAt(
+                    INTERSECTED_INFO.localInstanceId,
+                    tempMatrix
+                  );
+                  INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
+                }
+
+                // Reset Color
+                if (INTERSECTED_INFO.meshGroup.instanceColor) {
+                  INTERSECTED_INFO.meshGroup.setColorAt(
+                    INTERSECTED_INFO.localInstanceId,
+                    normalColor
+                  );
+                  INTERSECTED_INFO.meshGroup.instanceColor.needsUpdate = true;
+                }
+              } catch (e) {
+                console.error(
+                  "Error resetting scale/color:",
+                  e,
+                  INTERSECTED_INFO
+                );
+              }
+            }
+          }
+
+          // Apply scale and color to newly hovered item
+          if (newIntersectedInfo) {
+            const newData = instanceData[newIntersectedInfo.originalIndex];
+            if (newData?.visibleMeshGroup && newData.localInstanceId !== -1) {
+              try {
+                // Apply Scale
+                newIntersectedInfo.meshGroup.getMatrixAt(
+                  newIntersectedInfo.localInstanceId,
+                  tempMatrix
+                );
+                tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+                if (tempScale.equals(normalScaleVec)) {
+                  tempScale.copy(hoverScaleVec);
+                  tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                  newIntersectedInfo.meshGroup.setMatrixAt(
+                    newIntersectedInfo.localInstanceId,
+                    tempMatrix
+                  );
+                  newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
+                }
+
+                // Apply Hover Color
+                if (newIntersectedInfo.meshGroup.instanceColor) {
+                  newIntersectedInfo.meshGroup.setColorAt(
+                    newIntersectedInfo.localInstanceId,
+                    hoverColor
+                  );
+                  newIntersectedInfo.meshGroup.instanceColor.needsUpdate = true;
+                }
+              } catch (e) {
+                console.error(
+                  "Error applying scale/color:",
+                  e,
+                  newIntersectedInfo
+                );
+              }
+            }
+          }
+
+          INTERSECTED_INFO = newIntersectedInfo;
+        }
+
+        // --- Handle Selection ---
+        if (isSelectionAttempt && newIntersectedInfo) {
+          const data = instanceData[newIntersectedInfo.originalIndex];
+          if (data) {
+            selectedItemImage.src = data.imageUrl;
+            selectedItemImage.alt = "Selected product";
+            visitSiteButton.setAttribute("data-url", data.purchaseUrl);
+            selectedItemPanel.style.display = "block";
+            visitSiteButton.disabled =
+              !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
+          }
+        } else if (!isSelectionAttempt && !newIntersectedInfo) {
+          if (!selectedItemImage.src) {
+            selectedItemPanel.style.display = "none";
+          }
+        }
+      }
+
       function animate() {
         requestAnimationFrame(animate);
         const delta = clock.getDelta();
         const elapsedTime = clock.getElapsedTime();
 
-        // Update rotations
-        imageObjects.forEach((mesh) => {
-          mesh.rotation.x += mesh.userData.rotationSpeed.x;
-          mesh.rotation.y += mesh.userData.rotationSpeed.y;
-          mesh.rotation.z += mesh.userData.rotationSpeed.z;
-        });
+        let matrixNeedsUpdate = false;
 
+        // --- Update Instance Transforms ---
+        for (let i = 0; i < instanceData.length; i++) {
+          const data = instanceData[i];
+          if (
+            data &&
+            data.visibleMeshGroup &&
+            data.raycastMeshGroup &&
+            data.localInstanceId !== -1
+          ) {
+            try {
+              // 1. Get current transform data
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+
+              // 2. Apply subtle floating effect
+              const oscillationFactor =
+                Math.sin(elapsedTime * 0.2 + i * 0.1) * 0.02;
+              tempPosition.y += oscillationFactor;
+
+              // 3. Apply gentle rotation
+              const currentEuler = new THREE.Euler().setFromQuaternion(
+                tempQuaternion,
+                "XYZ"
+              );
+              currentEuler.x += data.rotationSpeed.x * delta;
+              currentEuler.y += data.rotationSpeed.y * delta;
+              currentEuler.z += data.rotationSpeed.z * delta;
+              tempQuaternion.setFromEuler(currentEuler);
+
+              // 4. Recompose the matrix
+              tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+
+              // 5. Set the updated matrix back
+              data.visibleMeshGroup.setMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              data.raycastMeshGroup.setMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+
+              matrixNeedsUpdate = true;
+            } catch (error) {
+              console.error(
+                `Error animating instance originalIndex ${i}, localId ${data.localInstanceId}:`,
+                error,
+                data
+              );
+            }
+          }
+        }
+
+        // --- Update Particles ---
+        if (particleSystem) {
+          particleSystem.rotation.y += delta * 0.015;
+          particleSystem.rotation.x += delta * 0.005;
+        }
+
+        // --- Update needsUpdate flag for relevant mesh groups ---
+        if (matrixNeedsUpdate) {
+          instancedMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+          raycastMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+        }
+
+        // --- Update Lights ---
         pointLights.forEach((light) => {
           light.userData.angle += light.userData.speed * delta;
-          light.position.set(
-            Math.cos(light.userData.angle) * light.userData.radius,
-            Math.sin(elapsedTime * light.userData.speed * 1.5) * 5 +
-              light.userData.yOffset,
-            Math.sin(light.userData.angle) * light.userData.radius
-          );
+          const x = Math.cos(light.userData.angle) * light.userData.radius;
+          const y =
+            Math.sin(elapsedTime * light.userData.speed * 0.5) * 5 +
+            light.userData.yOffset;
+          const z = Math.sin(light.userData.angle) * light.userData.radius;
+          light.position.set(x, y, z);
         });
-        handleIntersections();
-        controls.update();
-        renderer.render(scene, camera);
+
+        // --- Update Controls & Render ---
+        if (controls) {
+          controls.update();
+        }
+
+        if (renderer && scene && camera) {
+          renderer.render(scene, camera);
+        }
       }
 
-      function handleIntersections() {
-        raycaster.setFromCamera(pointer, camera);
-        const intersects = raycaster.intersectObjects(imageObjects);
+      // Optimized Texture Loader with Caching and Error Handling
+      async function loadTexture(loader, url) {
+        if (!url)
+          return Promise.reject(new Error("Texture URL is empty or invalid"));
 
-        if (intersects.length > 0) {
-          if (INTERSECTED !== intersects[0].object) {
-            if (INTERSECTED) {
-              INTERSECTED.scale.copy(INTERSECTED.userData.originalScale);
+        if (textureCache.has(url)) {
+          return textureCache.get(url);
+        }
+
+        const promise = new Promise((resolve, reject) => {
+          loader.load(
+            url,
+            (texture) => {
+              texture.colorSpace = THREE.SRGBColorSpace;
+              texture.minFilter = THREE.LinearFilter;
+              texture.magFilter = THREE.LinearFilter;
+              texture.needsUpdate = true;
+              resolve(texture);
+            },
+            undefined,
+            (errorEvent) => {
+              console.error(`Error loading texture: ${url}`, errorEvent);
+              textureCache.delete(url);
+              reject(new Error(`Failed to load texture ${url}`));
             }
-            INTERSECTED = intersects[0].object;
-            INTERSECTED.scale
-              .copy(INTERSECTED.userData.originalScale)
-              .multiplyScalar(1.2);
-          }
+          );
+        });
+
+        textureCache.set(url, promise);
+        return promise;
+      }
+
+      function showError(message) {
+        if (loaderElement) {
+          loaderElement.textContent = message;
+          loaderElement.style.color = "red";
+          loaderElement.style.display = "block";
         } else {
-          if (INTERSECTED) {
-            INTERSECTED.scale.copy(INTERSECTED.userData.originalScale);
-          }
-          INTERSECTED = null;
+          const errorDiv = document.createElement("div");
+          errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(200, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            text-align: center;
+          `;
+          errorDiv.textContent = message;
+          document.body.appendChild(errorDiv);
         }
       }
     </script>
