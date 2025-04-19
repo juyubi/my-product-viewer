@@ -40,7 +40,8 @@
         z-index: 100;
         display: flex;
         align-items: flex-start;
-        touch-action: auto; /* Allow touch interaction within controls */
+        touch-action: manipulation; /* 모바일 터치 동작 최적화 */
+        -webkit-tap-highlight-color: transparent; /* 터치 하이라이트 제거 */
       }
 
       #controls {
@@ -59,6 +60,8 @@
           max-width 0.3s ease-out, padding 0.3s ease-out;
         opacity: 1;
         transform: translateX(0);
+        -webkit-overflow-scrolling: touch; /* iOS 스크롤 부드럽게 */
+        touch-action: manipulation; /* 모바일 터치 동작 최적화 */
       }
 
       #controls.collapsed {
@@ -1678,27 +1681,47 @@
       function setupEventListeners() {
         window.addEventListener("resize", onWindowResize);
 
-        // 모바일 터치 이벤트 최적화
+        // 레이아웃 버튼 클릭 이벤트
+        document.querySelectorAll(".layout-button").forEach((button) => {
+          button.addEventListener("click", () => {
+            const layout = button.getAttribute("data-layout");
+            if (layout !== currentLayout) {
+              changeLayout(layout);
+              document.querySelectorAll(".layout-button").forEach((btn) => {
+                btn.classList.remove("active");
+              });
+              button.classList.add("active");
+            }
+          });
+        });
+
+        // 메뉴 토글 버튼 이벤트
+        toggleControlsButton.addEventListener("click", () => {
+          controlsElement.classList.toggle("collapsed");
+          toggleControlsButton.textContent = controlsElement.classList.contains(
+            "collapsed"
+          )
+            ? "☰"
+            : "✕";
+        });
+
+        // 모바일 터치 이벤트
         if (CONFIG.isMobile) {
-          document.addEventListener(
-            "touchstart",
-            (e) => {
-              e.preventDefault(); // 기본 스크롤 동작 방지
+          document.addEventListener("touchstart", (e) => {
+            if (!controlsContainer.contains(e.target)) {
               onPointerDown(e.touches[0]);
-            },
-            { passive: false }
-          );
+            }
+          });
 
           document.addEventListener(
             "touchmove",
             throttle((e) => {
-              e.preventDefault(); // 기본 스크롤 동작 방지
-              onPointerMove(e.touches[0]);
-            }, CONFIG.ANIMATION.THROTTLE),
-            { passive: false }
+              if (!controlsContainer.contains(e.target)) {
+                onPointerMove(e.touches[0]);
+              }
+            }, CONFIG.ANIMATION.THROTTLE)
           );
         } else {
-          // 데스크톱 이벤트
           document.addEventListener(
             "pointermove",
             throttle(onPointerMove, CONFIG.ANIMATION.THROTTLE)
@@ -1708,42 +1731,6 @@
 
         bgColorPicker.addEventListener("input", onBgColorChange);
         visitSiteButton.addEventListener("click", onVisitSiteClick);
-
-        // Layout button listeners
-        document.querySelectorAll(".layout-button").forEach((button) => {
-          button.addEventListener("click", () => {
-            const layout = button.getAttribute("data-layout");
-            if (layout !== currentLayout) {
-              // Prevent changing to the same layout
-              changeLayout(layout);
-
-              // Update active button style
-              document.querySelectorAll(".layout-button").forEach((btn) => {
-                btn.classList.remove("active");
-              });
-              button.classList.add("active");
-            }
-          });
-        });
-
-        // Prevent controls intercepting OrbitControls drag on touch devices
-        controlsElement.addEventListener("pointerdown", (e) =>
-          e.stopPropagation()
-        );
-        controlsElement.addEventListener("touchstart", (e) =>
-          e.stopPropagation()
-        ); // Fallback
-
-        // Toggle controls panel visibility
-        toggleControlsButton.addEventListener("click", () => {
-          controlsElement.classList.toggle("collapsed");
-          // Update button text based on state
-          toggleControlsButton.textContent = controlsElement.classList.contains(
-            "collapsed"
-          )
-            ? "☰"
-            : "✕";
-        });
       }
 
       // Throttle function to limit frequency of event handler calls
