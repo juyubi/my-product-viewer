@@ -1681,31 +1681,53 @@
       function setupEventListeners() {
         window.addEventListener("resize", onWindowResize);
 
-        // 레이아웃 버튼 클릭 이벤트
+        // 레이아웃 버튼 이벤트
         document.querySelectorAll(".layout-button").forEach((button) => {
-          button.addEventListener("click", () => {
-            const layout = button.getAttribute("data-layout");
-            if (layout !== currentLayout) {
-              changeLayout(layout);
-              document.querySelectorAll(".layout-button").forEach((btn) => {
-                btn.classList.remove("active");
-              });
-              button.classList.add("active");
-            }
-          });
+          if (CONFIG.isMobile) {
+            // 모바일 터치 이벤트
+            button.addEventListener("touchstart", (e) => {
+              e.preventDefault();
+              const layout = button.getAttribute("data-layout");
+              if (layout !== currentLayout) {
+                changeLayout(layout);
+                document.querySelectorAll(".layout-button").forEach((btn) => {
+                  btn.classList.remove("active");
+                });
+                button.classList.add("active");
+              }
+            });
+          } else {
+            // 데스크톱 클릭 이벤트
+            button.addEventListener("click", () => {
+              const layout = button.getAttribute("data-layout");
+              if (layout !== currentLayout) {
+                changeLayout(layout);
+                document.querySelectorAll(".layout-button").forEach((btn) => {
+                  btn.classList.remove("active");
+                });
+                button.classList.add("active");
+              }
+            });
+          }
         });
 
         // 메뉴 토글 버튼 이벤트
-        toggleControlsButton.addEventListener("click", () => {
-          controlsElement.classList.toggle("collapsed");
-          toggleControlsButton.textContent = controlsElement.classList.contains(
-            "collapsed"
-          )
-            ? "☰"
-            : "✕";
-        });
+        if (CONFIG.isMobile) {
+          toggleControlsButton.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            controlsElement.classList.toggle("collapsed");
+            toggleControlsButton.textContent =
+              controlsElement.classList.contains("collapsed") ? "☰" : "✕";
+          });
+        } else {
+          toggleControlsButton.addEventListener("click", () => {
+            controlsElement.classList.toggle("collapsed");
+            toggleControlsButton.textContent =
+              controlsElement.classList.contains("collapsed") ? "☰" : "✕";
+          });
+        }
 
-        // 모바일 터치 이벤트
+        // 메인 캔버스 이벤트
         if (CONFIG.isMobile) {
           document.addEventListener("touchstart", (e) => {
             if (!controlsContainer.contains(e.target)) {
