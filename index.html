@@ -178,7 +178,7 @@
         padding-top: 15px;
         border-top: 1px solid rgba(128, 128, 128, 0.5);
         display: none; /* Initially hidden */
-        max-width: 200px; /* 최대 너비 제한 */
+        max-width: 200px; /* 데스크톱 최대 너비 */
       }
       #selectedItemImage {
         max-width: 100%;
@@ -186,8 +186,8 @@
         margin-bottom: 10px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 4px;
-        max-height: 200px; /* 최대 높이 제한 */
-        object-fit: contain; /* 이미지 비율 유지 */
+        max-height: 200px; /* 데스크톱 최대 높이 */
+        object-fit: contain;
       }
       #visitSiteButton {
         display: block;
@@ -330,6 +330,15 @@
       }
       .layout-button i {
         font-size: 1.2em;
+      }
+
+      @media (max-width: 768px) {
+        #selectedItemPanel {
+          max-width: 150px; /* 모바일 최대 너비 */
+        }
+        #selectedItemImage {
+          max-height: 150px; /* 모바일 최대 높이 */
+        }
       }
     </style>
   </head>
