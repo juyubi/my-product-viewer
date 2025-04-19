@@ -89,30 +89,31 @@
 
       /* --- Responsive Design --- */
       @media (max-width: 768px) {
-        #controls {
-          padding: 8px;
-          font-size: 13px;
-          max-width: calc(65% - 40px);
-          max-height: 75vh;
-        }
         #controlsContainer {
           top: 5px;
           left: 5px;
+        }
+        #controls {
+          padding: 10px;
+          font-size: 13px;
+          max-width: calc(85% - 40px);
+          max-height: 80vh;
+          overflow-y: auto;
         }
         #controls.collapsed {
           transform: translateX(-110%);
         }
         #logoImage {
-          height: 25px;
+          height: 20px;
           margin-bottom: 10px;
         }
         #bgColorPicker {
-          width: 35px;
+          width: 30px;
           height: 18px;
         }
         #visitSiteButton {
-          padding: 8px;
-          font-size: 0.9em;
+          padding: 8px 12px;
+          font-size: 0.85em;
         }
         #toggleControlsButton {
           padding: 8px 10px;
@@ -123,13 +124,25 @@
           padding: 6px 8px;
           font-size: 0.8em;
           flex-grow: 1;
-          min-width: 60px;
+          min-width: 55px;
+        }
+        #layoutControls > div {
+          gap: 8px;
         }
       }
 
       @media (max-width: 480px) {
         #controls {
-          max-width: calc(70% - 35px);
+          max-width: calc(90% - 30px);
+          padding: 8px;
+        }
+        #logoImage {
+          height: 18px;
+          margin-bottom: 8px;
+        }
+        .layout-button {
+          font-size: 0.75em;
+          min-width: 50px;
         }
       }
       /* --- End Responsive Design --- */
@@ -165,6 +178,7 @@
         padding-top: 15px;
         border-top: 1px solid rgba(128, 128, 128, 0.5);
         display: none; /* Initially hidden */
+        max-width: 200px; /* 최대 너비 제한 */
       }
       #selectedItemImage {
         max-width: 100%;
@@ -172,6 +186,8 @@
         margin-bottom: 10px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 4px;
+        max-height: 200px; /* 최대 높이 제한 */
+        object-fit: contain; /* 이미지 비율 유지 */
       }
       #visitSiteButton {
         display: block;
@@ -1231,6 +1247,10 @@
           // Logo setup
           if (logoImageElement) {
             logoImageElement.src = "https://i.imgur.com/fgJ3rAV.png"; // Your logo URL
+            logoImageElement.style.cursor = "pointer"; // 커서를 포인터로 변경
+            logoImageElement.addEventListener("click", () => {
+              window.open("https://mayi2d.shop", "_blank"); // 새 탭에서 열기
+            });
           }
 
           // Scene setup
