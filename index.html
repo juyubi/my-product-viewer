@@ -418,6 +418,10 @@
         DEFAULT_BG_COLOR: "#000000",
         HOVER_SCALE_FACTOR: 1.2,
         CLICK_PLANE_SCALE: 1.5, // Scale factor for the invisible raycast plane
+        isMobile:
+          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ),
         CAMERA: {
           MOBILE: { Z: 55, MIN_DISTANCE: 15, MAX_DISTANCE: 120 },
           DESKTOP: { Z: 40, MIN_DISTANCE: 5, MAX_DISTANCE: 100 },
@@ -1396,9 +1400,10 @@
 
           // Shared Geometries & Materials
           sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5); // Geometry for visible planes
-          sharedRaycastGeometry = new THREE.PlaneGeometry( // Larger geometry for easier interaction
-            2.5 * CONFIG.CLICK_PLANE_SCALE,
-            2.5 * CONFIG.CLICK_PLANE_SCALE
+          const clickPlaneScale = CONFIG.isMobile ? 1.7 : 1.5;
+          sharedRaycastGeometry = new THREE.PlaneGeometry(
+            2.5 * clickPlaneScale,
+            2.5 * clickPlaneScale
           );
           sharedRaycastMaterial = new THREE.MeshBasicMaterial({
             visible: false, // Keep invisible
@@ -1765,15 +1770,10 @@
       }
 
       function onPointerDown(event) {
-        // Ignore clicks on the controls panel itself
-        if (controlsContainer.contains(event.target)) return;
-
-        // Calculate normalized device coordinates for the click
+        // 컨트롤 패널 클릭 무시 로직 제거
         pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
         pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-        // Perform intersection check and handle selection if an item is clicked
-        handleIntersections(true); // Pass true to indicate a selection attempt
+        handleIntersections(true);
       }
 
       function onBgColorChange(event) {
@@ -1800,26 +1800,19 @@
 
       function handleIntersections(isSelectionAttempt) {
         raycaster.setFromCamera(pointer, camera);
-        // Increase tolerance slightly for Points raycasting (if needed, not strictly necessary for planes)
-        // raycaster.params.Points.threshold = 0.5;
-
-        // Intersect with the invisible, larger raycast meshes for easier targeting
         const intersects = raycaster.intersectObjects(raycastMeshes, false);
 
         let newIntersectedInfo = null;
 
         if (intersects.length > 0) {
-          const intersect = intersects[0]; // Closest intersection
+          const intersect = intersects[0];
           if (intersect.instanceId !== undefined) {
-            // Check it's an instanced mesh intersection
             const raycastMeshGroup = intersect.object;
             const localInstanceId = intersect.instanceId;
 
-            // Find the corresponding logical instance data
-            // This assumes instanceData is dense (no gaps) or uses findIndex carefully
             const originalIndex = instanceData.findIndex(
               (data) =>
-                data && // Ensure data exists
+                data &&
                 data.raycastMeshGroup === raycastMeshGroup &&
                 data.localInstanceId === localInstanceId
             );
@@ -1827,15 +1820,13 @@
             if (originalIndex !== -1) {
               const data = instanceData[originalIndex];
               if (data && data.visibleMeshGroup) {
-                // Ensure visible mesh exists
-                // Filter out intersections that are too far away (optional)
-                const maxDistance = 100; // Adjust as needed
+                const maxDistance = 100;
                 if (intersect.distance < maxDistance) {
                   newIntersectedInfo = {
                     originalIndex,
-                    meshGroup: data.visibleMeshGroup, // Store ref to the VISIBLE mesh group
+                    meshGroup: data.visibleMeshGroup,
                     localInstanceId,
-                    data: data, // Include data for convenience
+                    data: data,
                   };
                 }
               }
@@ -1843,27 +1834,22 @@
           }
         }
 
-        // --- Handle Hover State Changes ---
+        // --- 호버 상태 변경 처리 ---
         if (
           INTERSECTED_INFO?.originalIndex !== newIntersectedInfo?.originalIndex
         ) {
-          // --- Reset Previous Hover ---
+          // --- 이전 호버 초기화 ---
           if (INTERSECTED_INFO) {
             const oldData = instanceData[INTERSECTED_INFO.originalIndex];
-            if (
-              oldData?.visibleMeshGroup &&
-              oldData.localInstanceId !== -1 &&
-              INTERSECTED_INFO.meshGroup.instanceColor // Check if color buffer exists
-            ) {
+            if (oldData?.visibleMeshGroup && oldData.localInstanceId !== -1) {
               try {
-                // Reset scale smoothly (or instantly) - Instant reset:
+                // 스케일 초기화
                 INTERSECTED_INFO.meshGroup.getMatrixAt(
                   INTERSECTED_INFO.localInstanceId,
                   tempMatrix
                 );
                 tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
                 if (!tempScale.equals(normalScaleVec)) {
-                  // Only update if not already normal scale
                   tempScale.copy(normalScaleVec);
                   tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
                   INTERSECTED_INFO.meshGroup.setMatrixAt(
@@ -1871,7 +1857,6 @@
                     tempMatrix
                   );
                   INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
-                  // Also update the raycast mesh matrix
                   oldData.raycastMeshGroup?.setMatrixAt(
                     INTERSECTED_INFO.localInstanceId,
                     tempMatrix
@@ -1879,7 +1864,7 @@
                   oldData.raycastMeshGroup.instanceMatrix.needsUpdate = true;
                 }
 
-                // Reset color
+                // 색상 초기화
                 INTERSECTED_INFO.meshGroup.setColorAt(
                   INTERSECTED_INFO.localInstanceId,
                   normalColor
@@ -1895,23 +1880,18 @@
             }
           }
 
-          // --- Apply New Hover ---
+          // --- 새 호버 적용 ---
           if (newIntersectedInfo) {
             const newData = instanceData[newIntersectedInfo.originalIndex];
-            if (
-              newData?.visibleMeshGroup &&
-              newData.localInstanceId !== -1 &&
-              newIntersectedInfo.meshGroup.instanceColor
-            ) {
+            if (newData?.visibleMeshGroup && newData.localInstanceId !== -1) {
               try {
-                // Apply hover scale
+                // 호버 스케일 적용
                 newIntersectedInfo.meshGroup.getMatrixAt(
                   newIntersectedInfo.localInstanceId,
                   tempMatrix
                 );
                 tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
                 if (!tempScale.equals(hoverScaleVec)) {
-                  // Only update if not already hover scale
                   tempScale.copy(hoverScaleVec);
                   tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
                   newIntersectedInfo.meshGroup.setMatrixAt(
@@ -1919,7 +1899,6 @@
                     tempMatrix
                   );
                   newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
-                  // Also update the raycast mesh matrix
                   newData.raycastMeshGroup?.setMatrixAt(
                     newIntersectedInfo.localInstanceId,
                     tempMatrix
@@ -1927,7 +1906,7 @@
                   newData.raycastMeshGroup.instanceMatrix.needsUpdate = true;
                 }
 
-                // Apply hover color
+                // 호버 색상 적용
                 newIntersectedInfo.meshGroup.setColorAt(
                   newIntersectedInfo.localInstanceId,
                   hoverColor
@@ -1942,33 +1921,34 @@
               }
             }
           }
-
-          INTERSECTED_INFO = newIntersectedInfo; // Update the currently hovered item
         }
 
-        // --- Handle Selection ---
+        // --- 선택 처리 (탭 피드백 추가) ---
         if (isSelectionAttempt && newIntersectedInfo) {
           const data = instanceData[newIntersectedInfo.originalIndex];
           if (data) {
-            // Update the selected item panel
+            // 탭 피드백 상태 설정
+            if (!data.isTapped) {
+              data.isTapped = true;
+              data.tapStartTime = clock.getElapsedTime();
+            }
+
+            // 선택 패널 업데이트
             selectedItemImage.src = data.imageUrl;
-            selectedItemImage.alt = "Selected product"; // Add alt text
+            selectedItemImage.alt = "Selected product";
             visitSiteButton.setAttribute("data-url", data.purchaseUrl);
-            selectedItemPanel.style.display = "block"; // Show the panel
-            // Disable button if URL is missing or is the default shop URL
+            selectedItemPanel.style.display = "block";
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
 
-            // If controls are collapsed on mobile, open them
             if (isMobile && controlsElement.classList.contains("collapsed")) {
               controlsElement.classList.remove("collapsed");
               toggleControlsButton.textContent = "✕";
             }
           }
-        } else if (isSelectionAttempt && !newIntersectedInfo) {
-          // Clicked on empty space, hide the panel (optional)
-          // selectedItemPanel.style.display = "none";
         }
+
+        INTERSECTED_INFO = newIntersectedInfo;
       }
 
       // Function to apply layout positions instantly without animation
@@ -2297,9 +2277,9 @@
         const delta = clock.getDelta();
         const elapsedTime = clock.getElapsedTime();
 
-        let matrixNeedsUpdate = false; // Flag to update instanced mesh matrices
+        let matrixNeedsUpdate = false;
 
-        // --- Layout Transition Animation ---
+        // --- 레이아웃 전환 애니메이션 ---
         if (isTransitioning) {
           const transitionProgress = Math.min(
             (elapsedTime - transitionStartTime) /
@@ -2429,8 +2409,7 @@
             matrixNeedsUpdate = true; // Ensure final snap is updated
           }
         } else {
-          // --- Not Transitioning - Apply Layout-Specific Idle Animations ---
-
+          // --- 레이아웃별 유휴 애니메이션 ---
           instanceData.forEach((data, i) => {
             if (
               data &&
@@ -2439,7 +2418,7 @@
               data.localInstanceId !== -1
             ) {
               try {
-                // Get current matrix state
+                // 현재 매트릭스 상태 가져오기
                 data.visibleMeshGroup.getMatrixAt(
                   data.localInstanceId,
                   tempMatrix
@@ -2449,45 +2428,57 @@
                 const isHovered =
                   INTERSECTED_INFO && INTERSECTED_INFO.originalIndex === i;
 
-                // Apply hover scale *before* layout animation modifies scale
-                if (isHovered && !tempScale.equals(hoverScaleVec)) {
-                  tempScale.copy(hoverScaleVec); // Apply hover scale immediately
-                } else if (!isHovered && !tempScale.equals(normalScaleVec)) {
-                  tempScale.copy(normalScaleVec); // Apply normal scale immediately
-                }
+                // 기본 스케일 결정 (호버 상태 고려)
+                let currentBaseScaleVec = isHovered
+                  ? hoverScaleVec
+                  : normalScaleVec;
 
-                // --- Layout Specific Animations ---
+                // ******** 탭 피드백 효과 적용 (추가된 부분) ********
+                let finalScaleVec = currentBaseScaleVec.clone();
+
+                if (data.isTapped) {
+                  const tapDuration = 0.2; // 탭 효과 지속 시간 (초)
+                  const tapMaxScaleFactor = 1.15; // 최대 스케일 배율
+                  const timeSinceTap = elapsedTime - data.tapStartTime;
+
+                  if (timeSinceTap < tapDuration) {
+                    const progress = timeSinceTap / tapDuration;
+                    const tapScalePulse =
+                      1 +
+                      (tapMaxScaleFactor - 1) * Math.sin(progress * Math.PI);
+                    finalScaleVec.multiplyScalar(tapScalePulse);
+                  } else {
+                    data.isTapped = false;
+                  }
+                  matrixNeedsUpdate = true;
+                }
+                // **************************************************
+
+                // --- 레이아웃별 위치/회전 애니메이션 ---
                 switch (currentLayout) {
                   case "sphere": {
-                    // CONFIG 객체의 값을 직접 사용
                     const ORBIT_SPEED = CONFIG.LAYOUT.SPHERE.ORBIT_SPEED;
                     const SELF_ROTATION_SPEED =
                       CONFIG.LAYOUT.SPHERE.SELF_ROTATION_SPEED;
 
-                    // Orbit around Y axis
                     const orbitQuat = new THREE.Quaternion().setFromAxisAngle(
                       new THREE.Vector3(0, 1, 0),
                       ORBIT_SPEED * delta
                     );
                     tempPosition.applyQuaternion(orbitQuat);
 
-                    // Re-orient to face outwards after orbiting
                     tempObject.position.copy(tempPosition);
-                    tempObject.lookAt(0, 0, 0); // Look at center
-                    tempObject.rotation.y += Math.PI; // Turn around to face out
-                    const baseQuaternion = tempObject.quaternion.clone(); // 기본 방향 (바깥쪽)
+                    tempObject.lookAt(0, 0, 0);
+                    tempObject.rotation.y += Math.PI;
 
-                    // Apply self-rotation (around local Y axis)
                     const selfRotateQuat =
                       new THREE.Quaternion().setFromAxisAngle(
                         new THREE.Vector3(0, 1, 0),
                         SELF_ROTATION_SPEED * delta
                       );
-
-                    // 수정된 Quaternion 적용 로직 유지
-                    tempQuaternion.copy(baseQuaternion);
-                    tempQuaternion.premultiply(selfRotateQuat);
-
+                    tempQuaternion
+                      .copy(tempObject.quaternion)
+                      .premultiply(selfRotateQuat);
                     break;
                   }
                   case "grid": {
@@ -2733,7 +2724,7 @@
 
                 // --- Compose Final Matrix & Apply ---
                 // The hover scale was applied earlier
-                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                tempMatrix.compose(tempPosition, tempQuaternion, finalScaleVec);
                 data.visibleMeshGroup.setMatrixAt(
                   data.localInstanceId,
                   tempMatrix
@@ -2754,8 +2745,7 @@
           }); // End instance loop (for idle animations)
         } // End 'isTransitioning' block
 
-        // --- Global Updates ---
-        // Update Instanced Mesh Matrices if needed
+        // --- 글로벌 업데이트 ---
         if (matrixNeedsUpdate) {
           instancedMeshes.forEach((mesh) => {
             if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
@@ -2767,13 +2757,12 @@
           });
         }
 
-        // Animate Particle System
+        // 파티클, 조명, 컨트롤 업데이트
         if (particleSystem) {
           particleSystem.rotation.y += delta * 0.005;
           particleSystem.rotation.x += delta * 0.002;
         }
 
-        // Animate Point Lights
         pointLights.forEach((light) => {
           light.userData.angle += light.userData.speed * delta * 0.5;
           const radiusFactor =
@@ -2788,7 +2777,6 @@
           light.position.set(x, y, z);
         });
 
-        // Animate Background Lights (Intensity Pulse)
         backgroundLight.intensity = 2.5 + Math.sin(elapsedTime * 0.3) * 0.8;
         backLight.intensity = 1.5 + Math.sin(elapsedTime * 0.2) * 0.5;
 
