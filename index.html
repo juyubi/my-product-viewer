@@ -1210,7 +1210,7 @@
       const hoverColor = new THREE.Color(1, 1, 0.6); // Yellowish tint on hover
       const normalColor = new THREE.Color(1, 1, 1); // Default color
       let isMobile = false;
-      let currentLayout = "sphere"; // Default layout
+      let currentLayout = "flow"; // Default layout을 flow로 변경
       let transitionStartTime = 0;
       let isTransitioning = false;
       let startPositions = []; // Array of { x, y, z, quaternion }
@@ -1419,7 +1419,7 @@
           // Setup Event Listeners
           setupEventListeners();
 
-          // Initialize with the default layout (Grid)
+          // Initialize with the default layout (Flow)
           // Set initial active button state
           document
             .querySelectorAll(".layout-button")
