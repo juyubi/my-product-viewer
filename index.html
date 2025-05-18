@@ -512,6 +512,7 @@
                 group.originalIndices.length
               );
               raycastMeshGroup.visible = true; // raycastMeshGroup을 항상 활성화
+              raycastMeshGroup.frustumCulled = false; // 프러스텀 컬링 비활성화
               scene.add(raycastMeshGroup);
               raycastMeshes.push(raycastMeshGroup);
 
