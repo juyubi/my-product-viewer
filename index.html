@@ -184,13 +184,13 @@
         max-width: 200px; /* 데스크톱 최대 너비 */
       }
       #selectedItemImage {
-        max-width: 100%;
-        height: auto;
+        width: 200px; /* 고정된 너비 */
+        height: 200px; /* 고정된 높이 */
         margin-bottom: 10px;
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 4px;
-        max-height: 200px; /* 데스크톱 최대 높이 */
-        object-fit: contain;
+        object-fit: contain; /* 이미지 비율 유지 */
+        background-color: rgba(0, 0, 0, 0.1); /* 이미지 주변 배경색 */
       }
       #visitSiteButton {
         display: block;
@@ -340,7 +340,8 @@
           max-width: 150px; /* 모바일 최대 너비 */
         }
         #selectedItemImage {
-          max-height: 150px; /* 모바일 최대 높이 */
+          width: 150px; /* 모바일에서의 고정된 너비 */
+          height: 150px; /* 모바일에서의 고정된 높이 */
         }
       }
     </style>
@@ -411,6 +412,8 @@
     <script type="module">
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import products from "./data/products.js";
+
       // import { SimplexNoise } from 'three/addons/math/SimplexNoise.js'; // If using Three's built-in
       // Or import from the separate library you included, e.g.:
       // const simplex = new SimplexNoise(); // You'll need to include a noise library
@@ -427,8 +430,8 @@
             navigator.userAgent
           ),
         CAMERA: {
-          MOBILE: { Z: 55, MIN_DISTANCE: 15, MAX_DISTANCE: 120 },
-          DESKTOP: { Z: 40, MIN_DISTANCE: 5, MAX_DISTANCE: 100 },
+          MOBILE: { Z: 55, MIN_DISTANCE: 3, MAX_DISTANCE: 120 },
+          DESKTOP: { Z: 40, MIN_DISTANCE: 3, MAX_DISTANCE: 100 },
         },
         LIGHT: {
           AMBIENT: { COLOR: 0x808080, INTENSITY: 1.8 },
@@ -512,689 +515,6 @@
         },
       };
 
-      // --- Product Data (Keep as is) ---
-      const products = [
-        /* ... Your product list remains unchanged ... */
-        {
-          imageUrl: "https://i.imgur.com/px60C11.png",
-          purchaseUrl: "https://mayi2d.shop/products/rose-little-prince",
-        },
-        {
-          imageUrl: "https://i.imgur.com/eqcLGF6.png",
-          purchaseUrl: "https://mayi2d.shop/products/amen%F0%9F%99%8F",
-        },
-        {
-          imageUrl: "https://i.imgur.com/xU7TS58.png",
-          purchaseUrl: "https://mayi2d.shop/products/sweet-panda",
-        },
-        {
-          imageUrl: "https://i.imgur.com/5b9EsGB.png",
-          purchaseUrl: "https://mayi2d.shop/products/black-punk- skull",
-        },
-        {
-          imageUrl: "https://i.imgur.com/bPXsjAw.png",
-          purchaseUrl: "https://mayi2d.shop/products/money-shape",
-        },
-        {
-          imageUrl: "https://i.imgur.com/GETdAiE.png",
-          purchaseUrl: "https://mayi2d.shop/products/bread-series",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Yz7dBh7.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/dinosaur-nugget-and-ketchup",
-        },
-        {
-          imageUrl: "https://i.imgur.com/1LF0lQF.png",
-          purchaseUrl: "https://mayi2d.shop/products/lab-mouse",
-        },
-        {
-          imageUrl: "https://i.imgur.com/HNLaeRM.png",
-          purchaseUrl: "https://mayi2d.shop/products/lab-flask-plants",
-        },
-        {
-          imageUrl: "https://i.imgur.com/xi6EnkF.png",
-          purchaseUrl: "https://mayi2d.shop/products/alien-green-cat-ufo",
-        },
-        {
-          imageUrl: "https://i.imgur.com/sllSsvG.png",
-          purchaseUrl: "https://mayi2d.shop/products/im-rock",
-        },
-        {
-          imageUrl: "https://i.imgur.com/gA6lWEj.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/soooo-cute-dinosaur-%F0%9F%91%BE",
-        },
-        {
-          imageUrl: "https://i.imgur.com/lRt2Uqw.png",
-          purchaseUrl: "http://mayi2d.shop/products/beetles",
-        },
-        {
-          imageUrl: "https://i.imgur.com/gAhjsnt.png",
-          purchaseUrl: "https://mayi2d.shop/products/one-eyed-mon",
-        },
-        {
-          imageUrl: "https://i.imgur.com/m7fDSk8.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/radioactive-radiation-labeling",
-        },
-        {
-          imageUrl: "https://i.imgur.com/lqjsDYn.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/marine-creatures%F0%9F%90%9A",
-        },
-        {
-          imageUrl: "https://i.imgur.com/sHcbpIm.png",
-          purchaseUrl: "https://mayi2d.shop/products/black-white-day",
-        },
-        {
-          imageUrl: "https://i.imgur.com/HIh73o1.png",
-          purchaseUrl: "https://mayi2d.shop/products/lazying-cat",
-        },
-        {
-          imageUrl: "https://i.imgur.com/wLvfLgH.png",
-          purchaseUrl: "https://mayi2d.shop/products/fluffy-penguin-lettering",
-        },
-        {
-          imageUrl: "https://i.imgur.com/mSUxi9J.png",
-          purchaseUrl: "https://mayi2d.shop/products/gas-mask",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Cg1z4B7.png",
-          purchaseUrl: "https://mayi2d.shop/products/green-frog-on-stool",
-        },
-        {
-          imageUrl: "https://i.imgur.com/N5XMO80.png",
-          purchaseUrl: "https://mayi2d.shop/products/fire-helllmo",
-        },
-        {
-          imageUrl: "https://i.imgur.com/p8SCKt6.png",
-          purchaseUrl: "https://mayi2d.shop/products/honk-honk",
-        },
-        {
-          imageUrl: "https://i.imgur.com/k7lFI9V.png",
-          purchaseUrl: "https://mayi2d.shop/products/punk-skull",
-        },
-        {
-          imageUrl: "https://i.imgur.com/GKfk2sx.png",
-          purchaseUrl: "https://mayi2d.shop/products/shotguns",
-        },
-        {
-          imageUrl: "https://i.imgur.com/YFUaw45.png",
-          purchaseUrl: "https://mayi2d.shop/products/wings-eye",
-        },
-        {
-          imageUrl: "https://i.imgur.com/W7kVc9D.png",
-          purchaseUrl: "https://mayi2d.shop/products/magic-potion",
-        },
-        {
-          imageUrl: "https://i.imgur.com/ohX7Kk0.png",
-          purchaseUrl: "https://mayi2d.shop/products/pool-boby",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9GLdv8S.png",
-          purchaseUrl: "https://mayi2d.shop/products/mystery-stuff",
-        },
-        {
-          imageUrl: "https://i.imgur.com/mywFTuJ.png",
-          purchaseUrl: "https://mayi2d.shop/products/luna-eye",
-        },
-        {
-          imageUrl: "https://i.imgur.com/u0Zax2J.png",
-          purchaseUrl: "https://mayi2d.shop/products/triple-bus",
-        },
-        {
-          imageUrl: "https://i.imgur.com/LZK48F5.png",
-          purchaseUrl: "https://mayi2d.shop/products/space-company",
-        },
-        {
-          imageUrl: "https://i.imgur.com/7pJLecy.png",
-          purchaseUrl: "https://mayi2d.shop/products/pumpkin-friends",
-        },
-        {
-          imageUrl: "https://i.imgur.com/hgr5Fgw.png",
-          purchaseUrl: "https://mayi2d.shop/products/i-did-it",
-        },
-        {
-          imageUrl: "https://i.imgur.com/tY2g0wr.png",
-          purchaseUrl: "https://mayi2d.shop/products/romance-pin",
-        },
-        {
-          imageUrl: "https://i.imgur.com/ZnKfEt1.png",
-          purchaseUrl: "https://mayi2d.shop/products/coffee-pumpkin",
-        },
-        {
-          imageUrl: "https://i.imgur.com/5g5pJBb.png",
-          purchaseUrl: "https://mayi2d.shop/products/pink-slime",
-        },
-        {
-          imageUrl: "https://i.imgur.com/nwUPDLq.png",
-          purchaseUrl: "https://mayi2d.shop/products/ticket",
-        },
-        {
-          imageUrl: "https://i.imgur.com/l1Enik5.png",
-          purchaseUrl: "https://mayi2d.shop/products/insam",
-        },
-        {
-          imageUrl: "https://i.imgur.com/0cr9Tpx.png",
-          purchaseUrl: "https://mayi2d.shop/products/science-brooches",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Gn8rTId.png",
-          purchaseUrl: "https://mayi2d.shop/products/sports-star-uniform",
-        },
-        {
-          imageUrl: "https://i.imgur.com/IeORQvd.png",
-          purchaseUrl: "https://mayi2d.shop/products/startled-cat",
-        },
-        {
-          imageUrl: "https://i.imgur.com/lAa6rbg.png",
-          purchaseUrl: "https://mayi2d.shop/products/meow-cat-keychain-luck-1",
-        },
-        {
-          imageUrl: "https://i.imgur.com/7votial.png",
-          purchaseUrl: "https://mayi2d.shop/products/sad-hamster-key-chain",
-        },
-        {
-          imageUrl: "https://i.imgur.com/INNoWiQ.png",
-          purchaseUrl: "https://mayi2d.shop/products/stronger-than-you-think",
-        },
-        {
-          imageUrl: "https://i.imgur.com/HYDjwO6.png",
-          purchaseUrl: "https://mayi2d.shop/products/movie-car",
-        },
-        {
-          imageUrl: "https://i.imgur.com/kQ6YI7e.png",
-          purchaseUrl: "https://mayi2d.shop/products/punk-skull-symbol",
-        },
-        {
-          imageUrl: "https://i.imgur.com/KoAL6XJ.png",
-          purchaseUrl: "https://mayi2d.shop/products/punisher-skull",
-        },
-        {
-          imageUrl: "https://i.imgur.com/wTFSY5N.png",
-          purchaseUrl: "https://mayi2d.shop/products/skull-of-rock",
-        },
-        {
-          imageUrl: "https://i.imgur.com/tXsQz9f.png",
-          purchaseUrl: "https://mayi2d.shop/products/gold-47",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Jkb1XgY.png",
-          purchaseUrl: "https://mayi2d.shop/products/glock-z",
-        },
-        {
-          imageUrl: "https://i.imgur.com/DRpZAg2.png",
-          purchaseUrl: "https://mayi2d.shop/products/just-life",
-        },
-        {
-          imageUrl: "https://i.imgur.com/QcUVzYZ.png",
-          purchaseUrl: "https://mayi2d.shop/products/green-plant-animal-face",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Duz6x1z.png",
-          purchaseUrl: "https://mayi2d.shop/products/vegetarian-bottle",
-        },
-        {
-          imageUrl: "https://i.imgur.com/n2y5M5O.png",
-          purchaseUrl: "https://mayi2d.shop/products/pink-joint",
-        },
-        {
-          imageUrl: "https://i.imgur.com/kErgX0i.png",
-          purchaseUrl: "https://mayi2d.shop/products/1-minute-later",
-        },
-        {
-          imageUrl: "https://i.imgur.com/jnQKuCP.png",
-          purchaseUrl: "https://mayi2d.shop/products/coral-reef-j",
-        },
-        {
-          imageUrl: "https://i.imgur.com/K25eeaD.png",
-          purchaseUrl: "https://mayi2d.shop/products/daisy-bong",
-        },
-        {
-          imageUrl: "https://i.imgur.com/r8ECoPz.png",
-          purchaseUrl: "https://mayi2d.shop/products/hungry-larva",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9UeUROm.png",
-          purchaseUrl: "https://mayi2d.shop/products/sunday-cupcake",
-        },
-        {
-          imageUrl: "https://i.imgur.com/OzerZT3.png",
-          purchaseUrl: "https://mayi2d.shop/products/human-organ-bottle",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Ru0Xgz7.png",
-          purchaseUrl: "https://mayi2d.shop/products/need-more-coffee",
-        },
-        {
-          imageUrl: "https://i.imgur.com/p52R6HC.png",
-          purchaseUrl: "https://mayi2d.shop/products/pink-portal",
-        },
-        {
-          imageUrl: "https://i.imgur.com/h0oqrIs.png",
-          purchaseUrl: "https://mayi2d.shop/products/girl-power%F0%9F%8C%9F",
-        },
-        {
-          imageUrl: "https://i.imgur.com/BJkmLGm.png",
-          purchaseUrl: "https://mayi2d.shop/products/colored-painting-brush",
-        },
-        {
-          imageUrl: "https://i.imgur.com/2xwHP9f.png",
-          purchaseUrl: "https://mayi2d.shop/products/women-belong-in-the-lab",
-        },
-        {
-          imageUrl: "https://i.imgur.com/i4erGhU.png",
-          purchaseUrl: "https://mayi2d.shop/products/feeling-goods-good-enough",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Zx4kwTX.png",
-          purchaseUrl: "https://mayi2d.shop/products/you-are-the-dancing-queen",
-        },
-        {
-          imageUrl: "https://i.imgur.com/oAKjGrr.png",
-          purchaseUrl: "https://mayi2d.shop/products/angel-love",
-        },
-        {
-          imageUrl: "https://i.imgur.com/gC2kQjV.png",
-          purchaseUrl: "https://mayi2d.shop/products/burning-dice-%F0%9F%94%A5",
-        },
-        {
-          imageUrl: "https://i.imgur.com/idF7VmU.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/strawberries-basket-%F0%9F%8D%93",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9LOM18S.png",
-          purchaseUrl: "https://mayi2d.shop/products/cheeze-alien-%F0%9F%91%BD",
-        },
-        {
-          imageUrl: "https://i.imgur.com/kPXg6nF.png",
-          purchaseUrl: "https://mayi2d.shop/products/wtf",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Lui16w2.png",
-          purchaseUrl: "https://mayi2d.shop/products/the-future-is-bright",
-        },
-        {
-          imageUrl: "https://i.imgur.com/NISHMQM.png",
-          purchaseUrl: "https://mayi2d.shop/products/purple-room",
-        },
-        {
-          imageUrl: "https://i.imgur.com/RFgtNCw.png",
-          purchaseUrl: "https://mayi2d.shop/products/legend-punk",
-        },
-        {
-          imageUrl: "https://i.imgur.com/AQKHdX4.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/i-tolerate-many-things-but-i-cant-tolerate-bran",
-        },
-        {
-          imageUrl: "https://i.imgur.com/lCDwzqg.png",
-          purchaseUrl: "https://mayi2d.shop/products/dear-me",
-        },
-        {
-          imageUrl: "https://i.imgur.com/A2bDvb5.png",
-          purchaseUrl: "https://mayi2d.shop/products/cow-duck",
-        },
-        {
-          imageUrl: "https://i.imgur.com/vUs3ezp.png",
-          purchaseUrl: "https://mayi2d.shop/products/red-oni",
-        },
-        {
-          imageUrl: "https://i.imgur.com/fXbc49J.png",
-          purchaseUrl: "https://mayi2d.shop/products/skeleton-cat-disco",
-        },
-        {
-          imageUrl: "https://i.imgur.com/hqZTWIb.png",
-          purchaseUrl: "https://mayi2d.shop/products/im-doing-side-quests",
-        },
-        {
-          imageUrl: "https://i.imgur.com/6PL3QQU.png",
-          purchaseUrl: "https://mayi2d.shop/products/la-blue-ice",
-        },
-        {
-          imageUrl: "https://i.imgur.com/y0PKlj4.png",
-          purchaseUrl: "https://mayi2d.shop/products/wah",
-        },
-        {
-          imageUrl: "https://i.imgur.com/bVGIDwp.png",
-          purchaseUrl: "https://mayi2d.shop/products/see-house",
-        },
-        {
-          imageUrl: "https://i.imgur.com/ECUPs7R.png",
-          purchaseUrl: "https://mayi2d.shop/products/warrior-pin",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Wh4lBna.png",
-          purchaseUrl: "https://mayi2d.shop/products/its-just-a-flesh-wound",
-        },
-        {
-          imageUrl: "https://i.imgur.com/ScKhQ3y.png",
-          purchaseUrl: "https://mayi2d.shop/products/cat-with-knife",
-        },
-        {
-          imageUrl: "https://i.imgur.com/prXigEi.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/lucky-swords-%F0%9F%97%A1%EF%B8%8F",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Ab6SXOT.png",
-          purchaseUrl: "https://mayi2d.shop/products/ranger-mask",
-        },
-        {
-          imageUrl: "https://i.imgur.com/L8sqXwg.png",
-          purchaseUrl: "https://mayi2d.shop/products/pink-mouse",
-        },
-        {
-          imageUrl: "https://i.imgur.com/uTE8O4b.png",
-          purchaseUrl: "https://mayi2d.shop/products/dr-peepee",
-        },
-        {
-          imageUrl: "https://i.imgur.com/erHLzLb.png",
-          purchaseUrl: "https://mayi2d.shop/products/seraph-cat-wings",
-        },
-        {
-          imageUrl: "https://i.imgur.com/rvCx8ym.png",
-          purchaseUrl: "https://mayi2d.shop/products/nugs-not-drugs",
-        },
-        {
-          imageUrl: "https://i.imgur.com/rC6BEDK.png",
-          purchaseUrl: "https://mayi2d.shop/products/boy-money",
-        },
-        {
-          imageUrl: "https://i.imgur.com/MswTpby.png",
-          purchaseUrl: "https://mayi2d.shop/products/pink-pistol",
-        },
-        {
-          imageUrl: "https://i.imgur.com/PrGSHhP.png",
-          purchaseUrl: "https://mayi2d.shop/products/goose-goose-drive",
-        },
-        {
-          imageUrl: "https://i.imgur.com/SZyg85x.png",
-          purchaseUrl: "https://mayi2d.shop/products/our-rainy-night-together",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Vf1l8lS.png",
-          purchaseUrl: "https://mayi2d.shop/products/dance-frog",
-        },
-        {
-          imageUrl: "https://i.imgur.com/vJrzH8u.png",
-          purchaseUrl: "https://mayi2d.shop/products/really",
-        },
-        {
-          imageUrl: "https://i.imgur.com/LXVPdzZ.png",
-          purchaseUrl: "https://mayi2d.shop/products/fibonacci",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Lmq94tj.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/something-that-makes-you-zone-out",
-        },
-        {
-          imageUrl: "https://i.imgur.com/pDdxXoB.png",
-          purchaseUrl: "https://mayi2d.shop/products/as-it-sways",
-        },
-        {
-          imageUrl: "https://i.imgur.com/jyMoju7.png",
-          purchaseUrl: "https://mayi2d.shop/products/wiggly-jellyfish",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Rlqrs0r.png",
-          purchaseUrl: "https://mayi2d.shop/products/believe-me-im-not-a-ghost",
-        },
-        {
-          imageUrl: "https://i.imgur.com/AJFTPXF.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/teetering-between-despair-and-darkness",
-        },
-        {
-          imageUrl: "https://i.imgur.com/yS0fYU6.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/an-elephant-with-octopus-tentacles",
-        },
-        {
-          imageUrl: "https://i.imgur.com/xJMg5zj.png",
-          purchaseUrl: "https://mayi2d.shop/products/two-birds",
-        },
-        {
-          imageUrl: "https://i.imgur.com/e4MBcKm.png",
-          purchaseUrl: "https://mayi2d.shop/products/blue-bird",
-        },
-        {
-          imageUrl: "https://i.imgur.com/7gHToMe.png",
-          purchaseUrl: "https://mayi2d.shop/products/mushroom-enamel-pin",
-        },
-        {
-          imageUrl: "https://i.imgur.com/GbgorJV.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/inspiration-old-pawn-indian-fred-bird",
-        },
-        {
-          imageUrl: "https://i.imgur.com/XmtTrNd.png",
-          purchaseUrl: "https://mayi2d.shop/products/with-hands-joined",
-        },
-        {
-          imageUrl: "https://i.imgur.com/SZyvd09.png",
-          purchaseUrl: "https://mayi2d.shop/products/neuron-potential",
-        },
-        {
-          imageUrl: "https://i.imgur.com/chrFVib.png",
-          purchaseUrl: "https://mayi2d.shop/products/peaceful-clouds",
-        },
-        {
-          imageUrl: "https://i.imgur.com/pukx8C1.png",
-          purchaseUrl: "https://mayi2d.shop/products/black-love",
-        },
-        {
-          imageUrl: "https://i.imgur.com/rkb5zVw.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/surprisingly-its-not-an-ancient-artifact-just-a-book-that-looks-like-one",
-        },
-        {
-          imageUrl: "https://i.imgur.com/NKirQGP.png",
-          purchaseUrl: "https://mayi2d.shop/products/round-muzzle",
-        },
-        {
-          imageUrl: "https://i.imgur.com/VDwCUKT.png",
-          purchaseUrl: "https://mayi2d.shop/products/eagerly-hand",
-        },
-        {
-          imageUrl: "https://i.imgur.com/keoxIUK.png",
-          purchaseUrl: "https://mayi2d.shop/products/hippie-bus",
-        },
-        {
-          imageUrl: "https://i.imgur.com/7ii0Pe2.png",
-          purchaseUrl: "https://mayi2d.shop/products/elephant-boho",
-        },
-        {
-          imageUrl: "https://i.imgur.com/JcUnlYc.png",
-          purchaseUrl: "https://mayi2d.shop/products/smile-lsd",
-        },
-        {
-          imageUrl: "https://i.imgur.com/jHj47lu.png",
-          purchaseUrl: "https://mayi2d.shop/products/the-astronaut",
-        },
-        {
-          imageUrl: "https://i.imgur.com/nr82kuE.png",
-          purchaseUrl: "https://mayi2d.shop/products/ninja-chakra",
-        },
-        {
-          imageUrl: "https://i.imgur.com/q8I54Z4.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/my-anxieties-have-anxieties",
-        },
-        {
-          imageUrl: "https://i.imgur.com/mEOKviv.png",
-          purchaseUrl: "https://mayi2d.shop/products/gotham-city",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Q9kLNeZ.png",
-          purchaseUrl: "https://mayi2d.shop/products/fire-demon-set",
-        },
-        {
-          imageUrl: "https://i.imgur.com/F5o1tKT.png",
-          purchaseUrl: "https://mayi2d.shop/products/lovely-cats",
-        },
-        {
-          imageUrl: "https://i.imgur.com/S95fvPl.png",
-          purchaseUrl: "https://mayi2d.shop/products/lab-mouse-1",
-        },
-        {
-          imageUrl: "https://i.imgur.com/t0yrawI.png",
-          purchaseUrl: "https://mayi2d.shop/products/angry-red-rabbit",
-        },
-        {
-          imageUrl: "https://i.imgur.com/k5hTHgQ.png",
-          purchaseUrl: "https://mayi2d.shop/products/money-shape-1",
-        },
-        {
-          imageUrl: "https://i.imgur.com/E3EEICL.png",
-          purchaseUrl: "https://mayi2d.shop/products/rstar",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9NPdoEy.png",
-          purchaseUrl: "https://mayi2d.shop/products/btc",
-        },
-        {
-          imageUrl: "https://i.imgur.com/1jPRCDP.png",
-          purchaseUrl: "https://mayi2d.shop/products/skull-candy",
-        },
-        {
-          imageUrl: "https://i.imgur.com/vzUt3ke.jpeg",
-          purchaseUrl: "https://mayi2d.shop/products/i-tried",
-        },
-        {
-          imageUrl: "https://i.imgur.com/AsePceB.png",
-          purchaseUrl: "https://mayi2d.shop/products/cat-card",
-        },
-        {
-          imageUrl: "https://i.imgur.com/FjDKimK.png",
-          purchaseUrl: "https://mayi2d.shop/products/this-is-fine",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9eEg1rP.png",
-          purchaseUrl: "https://mayi2d.shop/products/metal-chariot",
-        },
-        {
-          imageUrl: "https://i.imgur.com/N16f6kc.png",
-          purchaseUrl: "https://mayi2d.shop/products/2050-knightmare",
-        },
-        {
-          imageUrl: "https://i.imgur.com/9YAm1Ms.png",
-          purchaseUrl: "https://mayi2d.shop/products/let-it-burn",
-        },
-        {
-          imageUrl: "https://i.imgur.com/EFSH1Lz.png",
-          purchaseUrl: "https://mayi2d.shop/products/1am-ramen",
-        },
-        {
-          imageUrl: "https://i.imgur.com/zbw1jyf.png",
-          purchaseUrl: "https://mayi2d.shop/products/dinosaur-bongbong",
-        },
-        {
-          imageUrl: "https://i.imgur.com/4iDj0kV.png",
-          purchaseUrl: "https://mayi2d.shop/products/%E2%9C%9D%EF%B8%8F",
-        },
-        {
-          imageUrl: "https://i.imgur.com/QWFdy2r.png",
-          purchaseUrl: "https://mayi2d.shop/products/jesus-band",
-        },
-        {
-          imageUrl: "https://i.imgur.com/0zfAn9S.png",
-          purchaseUrl: "https://mayi2d.shop/products/cute-chameleon",
-        },
-        {
-          imageUrl: "https://i.imgur.com/rPofAT4.png",
-          purchaseUrl: "https://mayi2d.shop/products/pathetically-sad-cat",
-        },
-        {
-          imageUrl: "https://i.imgur.com/fOOL18m.png",
-          purchaseUrl: "https://mayi2d.shop/products/emblem-of-divinity",
-        },
-        {
-          imageUrl: "https://i.imgur.com/FAsrboW.png",
-          purchaseUrl: "https://mayi2d.shop/products/the-fluid-forest-tracker",
-        },
-        {
-          imageUrl: "https://i.imgur.com/0LSeR4p.png",
-          purchaseUrl: "https://mayi2d.shop/products/floral-cutie-alien",
-        },
-        {
-          imageUrl: "https://i.imgur.com/RP9RFbQ.png",
-          purchaseUrl: "https://mayi2d.shop/products/super-smash-bros",
-        },
-        {
-          imageUrl: "https://i.imgur.com/5AdYmGl.png",
-          purchaseUrl: "https://mayi2d.shop/products/sweet-duck",
-        },
-        {
-          imageUrl: "https://i.imgur.com/GMKwIQe.png",
-          purchaseUrl: "https://mayi2d.shop/products/re-1",
-        },
-        {
-          imageUrl: "https://i.imgur.com/kYitjLJ.png",
-          purchaseUrl: "https://mayi2d.shop/products/3d-game",
-        },
-        {
-          imageUrl: "https://i.imgur.com/B9rHIAF.png",
-          purchaseUrl: "https://mayi2d.shop/products/silly-juice",
-        },
-        {
-          imageUrl: "https://i.imgur.com/oXCvczU.png",
-          purchaseUrl:
-            "https://mayi2d.shop/products/came-across-some-green-crocs",
-        },
-        {
-          imageUrl: "https://i.imgur.com/hLI1zgx.png",
-          purchaseUrl: "https://mayi2d.shop/products/white-warrior",
-        },
-        {
-          imageUrl: "https://i.imgur.com/J13vxdy.png",
-          purchaseUrl: "https://mayi2d.shop/products/animal-pin",
-        },
-        {
-          imageUrl: "https://i.imgur.com/mtnb81v.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Xsa2DmF.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/mvn1RRw.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/UYyZi89.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/Tu7B9t4.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/rYZxLEl.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/pmYZnAD.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/zEWGkkm.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/AtIkq6X.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-        {
-          imageUrl: "https://i.imgur.com/RxVUfe0.png",
-          purchaseUrl: "https://mayi2d.shop/",
-        },
-      ];
-
       let scene, camera, renderer, controls;
       const instancedMeshes = [];
       const raycastMeshes = [];
@@ -1213,7 +533,7 @@
       const hoverColor = new THREE.Color(1, 1, 0.6); // Yellowish tint on hover
       const normalColor = new THREE.Color(1, 1, 1); // Default color
       let isMobile = false;
-      let currentLayout = "flow"; // Default layout을 flow로 변경
+      let currentLayout = "wavegrid"; // Default layout을 wavegrid로 변경
       let transitionStartTime = 0;
       let isTransitioning = false;
       let startPositions = []; // Array of { x, y, z, quaternion }
@@ -1286,7 +606,7 @@
           camera = new THREE.PerspectiveCamera(
             75, // Field of View
             window.innerWidth / window.innerHeight, // Aspect Ratio
-            0.01, // Near clipping plane
+            0.1, // Near clipping plane
             1000 // Far clipping plane
           );
           camera.position.z = isMobile
@@ -1410,10 +730,10 @@
             2.5 * clickPlaneScale
           );
           sharedRaycastMaterial = new THREE.MeshBasicMaterial({
-            visible: false, // Keep invisible
+            visible: false,
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.1, // Low opacity for debugging if needed
+            opacity: 0.1,
           });
 
           // Setup Instanced Meshes (Loads textures and creates instances)
@@ -1422,7 +742,7 @@
           // Setup Event Listeners
           setupEventListeners();
 
-          // Initialize with the default layout (Flow)
+          // Initialize with the default layout (Wavegrid)
           // Set initial active button state
           document
             .querySelectorAll(".layout-button")
@@ -1430,9 +750,16 @@
           document
             .querySelector(`.layout-button[data-layout="${currentLayout}"]`)
             ?.classList.add("active");
-          // Apply initial layout positions without transition
+
+          // 초기 레이아웃 적용 시 애니메이션 없이 즉시 적용
           targetPositions = calculateTargetPositions(currentLayout);
           applyInstantLayout(targetPositions);
+
+          // 초기 레이아웃 적용 후 약간의 지연을 두고 상태 업데이트
+          setTimeout(() => {
+            isTransitioning = false;
+            console.log("Initial layout applied successfully");
+          }, 100);
         } catch (error) {
           console.error("Initialization error:", error);
           showError("Error during initialization. Please refresh the page.");
@@ -1486,13 +813,30 @@
         texturesLoaded = 0;
         totalTexturesToLoad = 0;
 
+        // 디버깅을 위한 특정 인덱스 모니터링
+        const DEBUG_INDEX = 0; // 모니터링할 인덱스
+
         // Loading manager callbacks
         loadingManager.onProgress = (url, loaded, total) => {
           // console.log(`Loading texture: ${url}. Loaded ${loaded} of ${total}`);
         };
         loadingManager.onLoad = () => {
           console.log("All textures loaded via manager.");
-          checkLoadingComplete(); // Check completion once manager says it's done
+          // 디버깅: 특정 인덱스의 초기 데이터 상태 확인
+          if (instanceData[DEBUG_INDEX]) {
+            console.log(`[Setup] Instance ${DEBUG_INDEX} initial state:`, {
+              imageUrl: instanceData[DEBUG_INDEX].imageUrl,
+              purchaseUrl: instanceData[DEBUG_INDEX].purchaseUrl,
+              visibleMeshGroup: instanceData[DEBUG_INDEX].visibleMeshGroup
+                ? "exists"
+                : "null",
+              raycastMeshGroup: instanceData[DEBUG_INDEX].raycastMeshGroup
+                ? "exists"
+                : "null",
+              localInstanceId: instanceData[DEBUG_INDEX].localInstanceId,
+            });
+          }
+          checkLoadingComplete();
         };
         loadingManager.onError = (url) => {
           console.error("Error loading texture via manager:", url);
@@ -1588,9 +932,10 @@
               // --- Create Raycast Instanced Mesh (Invisible) ---
               const raycastMeshGroup = new THREE.InstancedMesh(
                 sharedRaycastGeometry,
-                sharedRaycastMaterial, // Uses the invisible material
+                sharedRaycastMaterial,
                 group.originalIndices.length
               );
+              raycastMeshGroup.visible = true; // raycastMeshGroup을 항상 활성화
               scene.add(raycastMeshGroup);
               raycastMeshes.push(raycastMeshGroup);
 
@@ -1839,27 +1184,31 @@
       function handleIntersections(isSelectionAttempt) {
         raycaster.setFromCamera(pointer, camera);
 
-        // 모바일에서 터치 감지 민감도 조정
+        // 클릭 감지 설정 개선
+        raycaster.params.Line.threshold = 0.3;
+        raycaster.params.Points.threshold = 0.3;
+
         if (CONFIG.isMobile) {
-          raycaster.params.Points.threshold = CONFIG.TOUCH_TOLERANCE;
+          raycaster.params.Points.threshold = Math.max(
+            CONFIG.TOUCH_TOLERANCE,
+            0.3
+          );
         }
 
-        const intersects = raycaster.intersectObjects(raycastMeshes, false);
-
+        // 모든 raycastMeshes에 대해 교차 검사
+        const intersects = raycaster.intersectObjects(raycastMeshes, true);
         let newIntersectedInfo = null;
 
         if (intersects.length > 0) {
-          const intersect = intersects[0]; // Closest intersection
+          const intersect = intersects[0];
           if (intersect.instanceId !== undefined) {
-            // Check it's an instanced mesh intersection
             const raycastMeshGroup = intersect.object;
             const localInstanceId = intersect.instanceId;
 
-            // Find the corresponding logical instance data
-            // This assumes instanceData is dense (no gaps) or uses findIndex carefully
+            // 해당 raycastMeshGroup에 속한 모든 인스턴스 데이터 검색
             const originalIndex = instanceData.findIndex(
               (data) =>
-                data && // Ensure data exists
+                data &&
                 data.raycastMeshGroup === raycastMeshGroup &&
                 data.localInstanceId === localInstanceId
             );
@@ -1867,15 +1216,28 @@
             if (originalIndex !== -1) {
               const data = instanceData[originalIndex];
               if (data && data.visibleMeshGroup) {
-                // Ensure visible mesh exists
-                // Filter out intersections that are too far away (optional)
-                const maxDistance = 100; // Adjust as needed
+                // 레이아웃별 클릭 감지 거리 조정
+                let maxDistance;
+                switch (currentLayout) {
+                  case "panorama":
+                    maxDistance = 400;
+                    break;
+                  case "sphere":
+                    maxDistance = 300;
+                    break;
+                  case "flow":
+                    maxDistance = 250;
+                    break;
+                  default:
+                    maxDistance = 200;
+                }
+
                 if (intersect.distance < maxDistance) {
                   newIntersectedInfo = {
                     originalIndex,
-                    meshGroup: data.visibleMeshGroup, // Store ref to the VISIBLE mesh group
+                    meshGroup: data.visibleMeshGroup,
                     localInstanceId,
-                    data: data, // Include data for convenience
+                    data: data,
                   };
                 }
               }
@@ -1883,131 +1245,94 @@
           }
         }
 
-        // --- Handle Hover State Changes ---
+        // 이전 hover 상태 제거
         if (
-          INTERSECTED_INFO?.originalIndex !== newIntersectedInfo?.originalIndex
+          INTERSECTED_INFO &&
+          (!newIntersectedInfo ||
+            INTERSECTED_INFO.originalIndex !== newIntersectedInfo.originalIndex)
         ) {
-          // --- Reset Previous Hover ---
-          if (INTERSECTED_INFO) {
-            const oldData = instanceData[INTERSECTED_INFO.originalIndex];
-            if (
-              oldData?.visibleMeshGroup &&
-              oldData.localInstanceId !== -1 &&
-              INTERSECTED_INFO.meshGroup.instanceColor // Check if color buffer exists
-            ) {
-              try {
-                // Reset scale smoothly (or instantly) - Instant reset:
-                INTERSECTED_INFO.meshGroup.getMatrixAt(
-                  INTERSECTED_INFO.localInstanceId,
-                  tempMatrix
-                );
-                tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
-                if (!tempScale.equals(normalScaleVec)) {
-                  // Only update if not already normal scale
-                  tempScale.copy(normalScaleVec);
-                  tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-                  INTERSECTED_INFO.meshGroup.setMatrixAt(
-                    INTERSECTED_INFO.localInstanceId,
-                    tempMatrix
-                  );
-                  INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
-                  // Also update the raycast mesh matrix
-                  oldData.raycastMeshGroup?.setMatrixAt(
-                    INTERSECTED_INFO.localInstanceId,
-                    tempMatrix
-                  );
-                  oldData.raycastMeshGroup.instanceMatrix.needsUpdate = true;
-                }
+          const oldData = instanceData[INTERSECTED_INFO.originalIndex];
+          if (oldData?.visibleMeshGroup && oldData.localInstanceId !== -1) {
+            try {
+              // Reset scale
+              INTERSECTED_INFO.meshGroup.getMatrixAt(
+                INTERSECTED_INFO.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              tempScale.copy(normalScaleVec);
+              tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+              INTERSECTED_INFO.meshGroup.setMatrixAt(
+                INTERSECTED_INFO.localInstanceId,
+                tempMatrix
+              );
+              INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
 
-                // Reset color
-                INTERSECTED_INFO.meshGroup.setColorAt(
-                  INTERSECTED_INFO.localInstanceId,
-                  normalColor
-                );
-                INTERSECTED_INFO.meshGroup.instanceColor.needsUpdate = true;
-              } catch (e) {
-                console.error(
-                  "Error resetting scale/color:",
-                  e,
-                  INTERSECTED_INFO
-                );
-              }
+              // Reset color
+              INTERSECTED_INFO.meshGroup.setColorAt(
+                INTERSECTED_INFO.localInstanceId,
+                normalColor
+              );
+              INTERSECTED_INFO.meshGroup.instanceColor.needsUpdate = true;
+            } catch (e) {
+              console.error("Error resetting hover state:", e);
             }
           }
-
-          // --- Apply New Hover ---
-          if (newIntersectedInfo) {
-            const newData = instanceData[newIntersectedInfo.originalIndex];
-            if (
-              newData?.visibleMeshGroup &&
-              newData.localInstanceId !== -1 &&
-              newIntersectedInfo.meshGroup.instanceColor
-            ) {
-              try {
-                // Apply hover scale
-                newIntersectedInfo.meshGroup.getMatrixAt(
-                  newIntersectedInfo.localInstanceId,
-                  tempMatrix
-                );
-                tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
-                if (!tempScale.equals(hoverScaleVec)) {
-                  // Only update if not already hover scale
-                  tempScale.copy(hoverScaleVec);
-                  tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-                  newIntersectedInfo.meshGroup.setMatrixAt(
-                    newIntersectedInfo.localInstanceId,
-                    tempMatrix
-                  );
-                  newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
-                  // Also update the raycast mesh matrix
-                  newData.raycastMeshGroup?.setMatrixAt(
-                    newIntersectedInfo.localInstanceId,
-                    tempMatrix
-                  );
-                  newData.raycastMeshGroup.instanceMatrix.needsUpdate = true;
-                }
-
-                // Apply hover color
-                newIntersectedInfo.meshGroup.setColorAt(
-                  newIntersectedInfo.localInstanceId,
-                  hoverColor
-                );
-                newIntersectedInfo.meshGroup.instanceColor.needsUpdate = true;
-              } catch (e) {
-                console.error(
-                  "Error applying scale/color:",
-                  e,
-                  newIntersectedInfo
-                );
-              }
-            }
-          }
-
-          INTERSECTED_INFO = newIntersectedInfo; // Update the currently hovered item
         }
 
-        // --- Handle Selection ---
+        // 새로운 hover 상태 적용
+        if (
+          newIntersectedInfo &&
+          (!INTERSECTED_INFO ||
+            INTERSECTED_INFO.originalIndex !== newIntersectedInfo.originalIndex)
+        ) {
+          const newData = instanceData[newIntersectedInfo.originalIndex];
+          if (newData?.visibleMeshGroup && newData.localInstanceId !== -1) {
+            try {
+              // Apply hover scale
+              newIntersectedInfo.meshGroup.getMatrixAt(
+                newIntersectedInfo.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              tempScale.copy(hoverScaleVec);
+              tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+              newIntersectedInfo.meshGroup.setMatrixAt(
+                newIntersectedInfo.localInstanceId,
+                tempMatrix
+              );
+              newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
+
+              // Apply hover color
+              newIntersectedInfo.meshGroup.setColorAt(
+                newIntersectedInfo.localInstanceId,
+                hoverColor
+              );
+              newIntersectedInfo.meshGroup.instanceColor.needsUpdate = true;
+            } catch (e) {
+              console.error("Error applying hover state:", e);
+            }
+          }
+        }
+
+        INTERSECTED_INFO = newIntersectedInfo;
+
+        // 클릭 처리
         if (isSelectionAttempt && newIntersectedInfo) {
           const data = instanceData[newIntersectedInfo.originalIndex];
           if (data) {
-            // Update the selected item panel
             selectedItemImage.src = data.imageUrl;
-            selectedItemImage.alt = "Selected product"; // Add alt text
+            selectedItemImage.alt = "Selected product";
             visitSiteButton.setAttribute("data-url", data.purchaseUrl);
-            selectedItemPanel.style.display = "block"; // Show the panel
-            // Disable button if URL is missing or is the default shop URL
+            selectedItemPanel.style.display = "block";
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
 
-            // If controls are collapsed on mobile, open them
             if (isMobile && controlsElement.classList.contains("collapsed")) {
               controlsElement.classList.remove("collapsed");
               toggleControlsButton.textContent = "✕";
             }
           }
-        } else if (isSelectionAttempt && !newIntersectedInfo) {
-          // Clicked on empty space, hide the panel (optional)
-          // selectedItemPanel.style.display = "none";
         }
       }
 
@@ -2085,20 +1410,32 @@
           if (data && data.visibleMeshGroup && data.localInstanceId !== -1) {
             data.visibleMeshGroup.getMatrixAt(data.localInstanceId, tempMatrix);
             tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
-            // Create a new object for the start state
             return {
               x: tempPosition.x,
               y: tempPosition.y,
               z: tempPosition.z,
-              quaternion: tempQuaternion.clone(), // Clone the quaternion
+              quaternion: tempQuaternion.clone(),
             };
           }
-          // Return a default state if data is invalid
           return { x: 0, y: 0, z: 0, quaternion: new THREE.Quaternion() };
         });
 
         // Calculate target positions and rotations for the new layout
         targetPositions = calculateTargetPositions(layoutType);
+
+        // 레이아웃 전환 시 raycastMeshes 업데이트 보장
+        instanceData.forEach((data, i) => {
+          if (
+            data &&
+            data.visibleMeshGroup &&
+            data.raycastMeshGroup &&
+            data.localInstanceId !== -1
+          ) {
+            data.visibleMeshGroup.getMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.instanceMatrix.needsUpdate = true;
+          }
+        });
       }
 
       function calculateTargetPositions(layoutType) {
@@ -2129,8 +1466,17 @@
 
               // Calculate orientation to face outwards
               tempObject.position.copy(pos);
-              tempObject.lookAt(0, 0, 0); // Look at center
-              tempObject.rotation.y += Math.PI; // Turn around to face out
+              if (
+                tempObject.position.distanceTo(new THREE.Vector3(0, 0, 0)) <
+                0.001
+              ) {
+                // 위치가 거의 동일한 경우 기본 방향 설정
+                tempObject.quaternion.identity();
+                tempObject.rotation.y = Math.PI; // 기본적으로 뒤를 보도록 설정
+              } else {
+                tempObject.lookAt(0, 0, 0); // Look at center
+                tempObject.rotation.y += Math.PI; // Turn around to face out
+              }
 
               positions.push({
                 x: pos.x,
@@ -2337,7 +1683,12 @@
         const delta = clock.getDelta();
         const elapsedTime = clock.getElapsedTime();
 
-        let matrixNeedsUpdate = false; // Flag to update instanced mesh matrices
+        // 디버깅을 위한 특정 인덱스 모니터링
+        const DEBUG_INDEX = 0; // 모니터링할 인덱스
+        const DEBUG_INTERVAL = 1000; // 1초마다 로그 출력
+        const shouldLog = Math.floor(elapsedTime * 1000) % DEBUG_INTERVAL === 0;
+
+        let matrixNeedsUpdate = false;
 
         // --- Layout Transition Animation ---
         if (isTransitioning) {
@@ -2346,7 +1697,26 @@
               CONFIG.ANIMATION.TRANSITION_DURATION,
             1.0
           );
-          const easeProgress = easeInOutCubic(transitionProgress); // Apply easing
+          const easeProgress = easeInOutCubic(transitionProgress);
+
+          // 디버깅: 전환 중인 특정 인덱스의 상태 확인
+          if (shouldLog && instanceData[DEBUG_INDEX]) {
+            const data = instanceData[DEBUG_INDEX];
+            if (data.visibleMeshGroup && data.localInstanceId !== -1) {
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              console.log(`[Transition] Instance ${DEBUG_INDEX} state:`, {
+                position: tempPosition.toArray(),
+                rotation: tempQuaternion.toArray(),
+                scale: tempScale.toArray(),
+                progress: transitionProgress,
+                easeProgress: easeProgress,
+              });
+            }
+          }
 
           instanceData.forEach((data, i) => {
             if (
@@ -2429,11 +1799,13 @@
           if (transitionProgress >= 1.0) {
             isTransitioning = false;
             console.log("Layout transition complete.");
-            // Optional: Snap to final target position/rotation precisely
+
+            // 레이아웃 전환 완료 후 모든 메시 업데이트
             instanceData.forEach((data, i) => {
               if (
                 data &&
                 data.visibleMeshGroup &&
+                data.raycastMeshGroup &&
                 data.localInstanceId !== -1 &&
                 targetPositions[i]
               ) {
@@ -2441,28 +1813,30 @@
                 tempPosition.set(target.x, target.y, target.z);
                 tempQuaternion.copy(
                   target.quaternion || new THREE.Quaternion()
-                ); // Use target or identity quat
-                tempScale.set(1, 1, 1); // Ensure normal scale
+                );
+                tempScale.set(1, 1, 1);
                 tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+
+                // visibleMeshGroup과 raycastMeshGroup 모두 업데이트
                 data.visibleMeshGroup.setMatrixAt(
                   data.localInstanceId,
                   tempMatrix
                 );
-                data.raycastMeshGroup?.setMatrixAt(
+                data.raycastMeshGroup.setMatrixAt(
                   data.localInstanceId,
                   tempMatrix
                 );
+                data.visibleMeshGroup.instanceMatrix.needsUpdate = true;
+                data.raycastMeshGroup.instanceMatrix.needsUpdate = true;
 
-                // Store layout-specific data from target
+                // 레이아웃별 데이터 업데이트
                 if (target.baseZ !== undefined) data.targetZ = target.baseZ;
                 if (target.layerIndex !== undefined)
                   data.layerIndex = target.layerIndex;
-                // Ensure flow velocity is zero if not in flow layout
                 if (currentLayout !== "flow") {
                   data.velocity?.set(0, 0, 0);
                   data.angularVelocity?.set(0, 0, 0);
                 }
-                // Reset wave offset
                 data.currentZOffset = 0;
               }
             });
@@ -2470,6 +1844,25 @@
           }
         } else {
           // --- Not Transitioning - Apply Layout-Specific Idle Animations ---
+
+          // 디버깅: 일반 애니메이션 중인 특정 인덱스의 상태 확인
+          if (shouldLog && instanceData[DEBUG_INDEX]) {
+            const data = instanceData[DEBUG_INDEX];
+            if (data.visibleMeshGroup && data.localInstanceId !== -1) {
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              console.log(`[Animation] Instance ${DEBUG_INDEX} state:`, {
+                layout: currentLayout,
+                position: tempPosition.toArray(),
+                rotation: tempQuaternion.toArray(),
+                scale: tempScale.toArray(),
+                isHovered: INTERSECTED_INFO?.originalIndex === DEBUG_INDEX,
+              });
+            }
+          }
 
           instanceData.forEach((data, i) => {
             if (
@@ -2599,7 +1992,12 @@
                     // Re-orient to look at Z-axis after structure rotation
                     const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
                     tempObject.position.copy(tempPosition);
-                    tempObject.lookAt(lookAtPoint);
+                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                      // 위치가 거의 동일한 경우 기본 방향 설정
+                      tempObject.quaternion.identity();
+                    } else {
+                      tempObject.lookAt(lookAtPoint);
+                    }
                     const baseQuaternion = tempObject.quaternion.clone();
 
                     // Apply self-rotation (tumbling around local Y)
@@ -2667,9 +2065,15 @@
                       // Only rotate if moving significantly
                       // Create a target quaternion that aligns Z-axis with velocity
                       tempObject.position.copy(tempPosition);
-                      tempObject.lookAt(
-                        tempPosition.clone().add(data.velocity)
-                      ); // Look in direction of movement
+                      const lookAtPoint = tempPosition
+                        .clone()
+                        .add(data.velocity);
+                      if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                        // 위치가 거의 동일한 경우 기본 방향 설정
+                        tempObject.quaternion.identity();
+                      } else {
+                        tempObject.lookAt(lookAtPoint); // Look in direction of movement
+                      }
                       const targetFlowQuat = tempObject.quaternion;
 
                       // Slerp towards the target rotation for smoother turning
@@ -2735,7 +2139,13 @@
 
                     // --- 아이템 방향 조정 ---
                     tempObject.position.copy(tempPosition);
-                    tempObject.lookAt(0, 0, tempPosition.z);
+                    const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
+                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                      // 위치가 거의 동일한 경우 기본 방향 설정
+                      tempObject.quaternion.identity();
+                    } else {
+                      tempObject.lookAt(lookAtPoint);
+                    }
                     tempQuaternion.copy(tempObject.quaternion);
 
                     // --- 레이어별 회전 속도 차이 ---
