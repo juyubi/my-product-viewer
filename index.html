@@ -501,6 +501,7 @@
               }
               visibleMeshGroup.instanceColor.needsUpdate = true;
               visibleMeshGroup.userData.imageUrl = imageUrl; // Store URL for reference if needed
+              visibleMeshGroup.frustumCulled = false; // 프러스텀 컬링 비활성화
               scene.add(visibleMeshGroup);
               instancedMeshes.push(visibleMeshGroup);
 
