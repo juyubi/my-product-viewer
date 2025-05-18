@@ -1,5 +1,5 @@
 const CONFIG = {
-  IMAGE_OBJECT_COUNT: 200,
+  IMAGE_OBJECT_COUNT: 300,
   SPREAD_RANGE: 60, // Used for Random and Flow initial spread
   DEFAULT_BG_COLOR: "#000000",
   HOVER_SCALE_FACTOR: 1.2,
