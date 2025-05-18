@@ -10,7 +10,7 @@ const CONFIG = {
       navigator.userAgent
     ),
   CAMERA: {
-    MOBILE: { Z: 25, MIN_DISTANCE: 5, MAX_DISTANCE: 150 },
+    MOBILE: { Z: 22, MIN_DISTANCE: 5, MAX_DISTANCE: 150 },
     DESKTOP: { Z: 22, MIN_DISTANCE: 5, MAX_DISTANCE: 120 },
   },
   LIGHT: {
