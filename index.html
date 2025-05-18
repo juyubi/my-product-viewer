@@ -33,25 +33,11 @@
           "
         >
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
-            <button
-              class="layout-button active"
-              data-layout="wavegrid"
-              title="Wave Grid"
-            >
-              Grid
-            </button>
             <button class="layout-button" data-layout="sphere" title="Sphere">
               Sphere
             </button>
             <button class="layout-button" data-layout="flow" title="Flow">
               Free
-            </button>
-            <button
-              class="layout-button"
-              data-layout="panorama"
-              title="Panorama"
-            >
-              View
             </button>
           </div>
         </div>
@@ -107,7 +93,7 @@
       const hoverColor = new THREE.Color(1, 1, 0.6); // Yellowish tint on hover
       const normalColor = new THREE.Color(1, 1, 1); // Default color
       let isMobile = false;
-      let currentLayout = "wavegrid"; // Default layout을 wavegrid로 변경
+      let currentLayout = "sphere"; // Default layout을 sphere로 변경
       let transitionStartTime = 0;
       let isTransitioning = false;
       let startPositions = []; // Array of { x, y, z, quaternion }

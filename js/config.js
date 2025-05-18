@@ -40,8 +40,8 @@ const CONFIG = {
     SPHERE: {
       RADIUS: 25,
       SPREAD: 0.05, // Randomness factor for radius
-      ORBIT_SPEED: 0.02, // Speed items orbit the center (0.01에서 0.02로 증가)
-      SELF_ROTATION_SPEED: 0.05, // Speed items spin (0.03에서 0.05로 증가)
+      ORBIT_SPEED: 0.05, // Speed items orbit the center (0.02에서 0.05로 증가)
+      SELF_ROTATION_SPEED: 0.1, // Speed items spin (0.05에서 0.1로 증가)
     },
     GRID: {
       COLUMNS: 12,
