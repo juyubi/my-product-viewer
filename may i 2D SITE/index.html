@@ -9,342 +9,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
     />
-    <style>
-      body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #ffffff;
-        color: #000000;
-        font-family: sans-serif;
-        touch-action: none; /* Prevent default touch actions like scrolling/zooming on the canvas */
-      }
-      canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-      }
-      #loader {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 1.2em;
-        color: #555;
-        z-index: 101;
-      }
-
-      #controlsContainer {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        z-index: 100;
-        display: flex;
-        align-items: flex-start;
-        touch-action: manipulation; /* 모바일 터치 동작 최적화 */
-        -webkit-tap-highlight-color: transparent; /* 터치 하이라이트 제거 */
-      }
-
-      #controls {
-        background-color: rgba(30, 30, 30, 0.75);
-        color: #ffffff;
-        padding: 15px;
-        border-radius: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-        max-height: 85vh;
-        overflow-y: auto;
-        max-width: 280px;
-        box-sizing: border-box;
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        transition: transform 0.3s ease-out, opacity 0.3s ease-out,
-          max-width 0.3s ease-out, padding 0.3s ease-out;
-        opacity: 1;
-        transform: translateX(0);
-        -webkit-overflow-scrolling: touch; /* iOS 스크롤 부드럽게 */
-        touch-action: manipulation; /* 모바일 터치 동작 최적화 */
-      }
-
-      #controls.collapsed {
-        transform: translateX(-110%);
-        opacity: 0;
-        padding: 0;
-        max-width: 0;
-        border: none;
-        overflow: hidden;
-        pointer-events: none; /* Disable interaction when collapsed */
-      }
-
-      #toggleControlsButton {
-        background-color: rgba(50, 50, 50, 0.8);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 5px;
-        padding: 8px 10px;
-        cursor: pointer;
-        font-size: 16px;
-        margin-left: 8px;
-        z-index: 101;
-        transition: background-color 0.2s ease;
-      }
-      #toggleControlsButton:hover {
-        background-color: rgba(80, 80, 80, 0.9);
-      }
-
-      /* --- Responsive Design --- */
-      @media (max-width: 768px) {
-        #controlsContainer {
-          top: 5px;
-          left: 5px;
-        }
-        #controls {
-          padding: 10px;
-          font-size: 13px;
-          max-width: calc(85% - 40px);
-          max-height: 80vh;
-          overflow-y: auto;
-        }
-        #controls.collapsed {
-          transform: translateX(-110%);
-        }
-        #logoImage {
-          height: 20px;
-          margin-bottom: 10px;
-        }
-        #bgColorPicker {
-          width: 30px;
-          height: 18px;
-        }
-        #visitSiteButton {
-          padding: 8px 12px;
-          font-size: 0.85em;
-        }
-        #toggleControlsButton {
-          padding: 8px 10px;
-          font-size: 18px;
-        }
-
-        .layout-button {
-          padding: 6px 8px;
-          font-size: 0.8em;
-          flex-grow: 1;
-          min-width: 55px;
-        }
-        #layoutControls > div {
-          gap: 8px;
-        }
-      }
-
-      @media (max-width: 480px) {
-        #controls {
-          max-width: calc(90% - 30px);
-          padding: 8px;
-        }
-        #logoImage {
-          height: 18px;
-          margin-bottom: 8px;
-        }
-        .layout-button {
-          font-size: 0.75em;
-          min-width: 50px;
-        }
-      }
-      /* --- End Responsive Design --- */
-
-      #logoImage {
-        display: block;
-        height: 40px; /* Adjust as needed */
-        width: auto;
-        margin-bottom: 20px;
-      }
-      #controls label {
-        margin-bottom: 8px;
-        display: block;
-        font-weight: 600;
-        font-size: 0.9em;
-      }
-      #controls h4 {
-        margin: 0 0 10px 0;
-        font-size: 1.1em;
-        font-weight: 600;
-      }
-      #bgColorPicker {
-        vertical-align: middle;
-        cursor: pointer;
-        border: 1px solid rgba(128, 128, 128, 0.5);
-        width: 50px;
-        height: 25px;
-        margin-left: 5px;
-        border-radius: 4px;
-      }
-      #selectedItemPanel {
-        margin-top: 15px;
-        padding-top: 15px;
-        border-top: 1px solid rgba(128, 128, 128, 0.5);
-        display: none; /* Initially hidden */
-        max-width: 200px; /* 데스크톱 최대 너비 */
-      }
-      #selectedItemImage {
-        width: 200px; /* 고정된 너비 */
-        height: 200px; /* 고정된 높이 */
-        margin-bottom: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 4px;
-        object-fit: contain; /* 이미지 비율 유지 */
-        background-color: rgba(0, 0, 0, 0.1); /* 이미지 주변 배경색 */
-      }
-      #visitSiteButton {
-        display: block;
-        width: 100%;
-        padding: 10px 16px;
-        margin-top: 10px;
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #e0e0e0;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        cursor: pointer;
-        text-align: center;
-        font-size: 0.9em;
-        font-weight: 500;
-        line-height: 1.3;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        position: relative;
-        overflow: hidden;
-      }
-
-      #visitSiteButton::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.2) 0%,
-          rgba(255, 255, 255, 0) 70%
-        );
-        border-radius: inherit;
-        opacity: 0;
-        transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-      }
-
-      #visitSiteButton:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.6);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
-      }
-
-      #visitSiteButton:hover::before {
-        transform: translate(-50%, -50%) scale(1.5);
-        opacity: 1;
-      }
-
-      #visitSiteButton:active {
-        transform: translateY(0px) scale(0.97);
-        background-color: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      #visitSiteButton:disabled {
-        background: rgba(85, 85, 85, 0.3);
-        color: #aaa;
-        cursor: not-allowed;
-        transform: none;
-        box-shadow: none;
-      }
-      .layout-button {
-        padding: 10px 16px;
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #e0e0e0;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 0.9em;
-        font-weight: 500;
-        text-align: center;
-        line-height: 1.3;
-        flex-grow: 1;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-        position: relative;
-        overflow: hidden;
-      }
-
-      .layout-button::before {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(
-          circle,
-          rgba(255, 255, 255, 0.2) 0%,
-          rgba(255, 255, 255, 0) 70%
-        );
-        border-radius: inherit;
-        opacity: 0;
-        transition: transform 0.4s ease-out, opacity 0.4s ease-out;
-      }
-
-      .layout-button:hover {
-        background-color: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.6);
-        transform: translateY(-2px);
-        box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
-      }
-
-      .layout-button:hover::before {
-        transform: translate(-50%, -50%) scale(1.5);
-        opacity: 1;
-      }
-
-      .layout-button:active {
-        transform: translateY(0px) scale(0.97);
-        background-color: rgba(255, 255, 255, 0.15);
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
-      }
-
-      .layout-button.active {
-        background: linear-gradient(
-          45deg,
-          rgba(0, 220, 220, 0.6),
-          rgba(0, 180, 255, 0.7)
-        );
-        color: white;
-        font-weight: 700;
-        border: 1px solid rgba(0, 200, 255, 0.8);
-        box-shadow: 0 0 12px rgba(0, 200, 255, 0.4),
-          0 3px 8px rgba(0, 0, 0, 0.2);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-      }
-
-      #layoutControls > div {
-        gap: 10px;
-      }
-      .layout-button i {
-        font-size: 1.2em;
-      }
-
-      @media (max-width: 768px) {
-        #selectedItemPanel {
-          max-width: 150px; /* 모바일 최대 너비 */
-        }
-        #selectedItemImage {
-          width: 150px; /* 모바일에서의 고정된 너비 */
-          height: 150px; /* 모바일에서의 고정된 높이 */
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
     <div id="controlsContainer">
@@ -413,107 +78,17 @@
       import * as THREE from "three";
       import { OrbitControls } from "three/addons/controls/OrbitControls.js";
       import products from "./data/products.js";
+      import CONFIG from "./js/config.js";
+      import {
+        throttle,
+        easeInOutCubic,
+        loadTexture,
+        showError,
+      } from "./js/utils.js";
 
       // import { SimplexNoise } from 'three/addons/math/SimplexNoise.js'; // If using Three's built-in
       // Or import from the separate library you included, e.g.:
       // const simplex = new SimplexNoise(); // You'll need to include a noise library
-
-      const CONFIG = {
-        IMAGE_OBJECT_COUNT: 200,
-        SPREAD_RANGE: 60, // Used for Random and Flow initial spread
-        DEFAULT_BG_COLOR: "#000000",
-        HOVER_SCALE_FACTOR: 1.2,
-        CLICK_PLANE_SCALE: 1.7, // 모바일에서 더 큰 클릭 영역을 위해 증가
-        TOUCH_TOLERANCE: 0.1, // 터치 감지 민감도 추가
-        isMobile:
-          /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-            navigator.userAgent
-          ),
-        CAMERA: {
-          MOBILE: { Z: 55, MIN_DISTANCE: 3, MAX_DISTANCE: 120 },
-          DESKTOP: { Z: 40, MIN_DISTANCE: 3, MAX_DISTANCE: 100 },
-        },
-        LIGHT: {
-          AMBIENT: { COLOR: 0x808080, INTENSITY: 1.8 },
-          POINT: {
-            COLORS: [0xffaa00, 0x00aaff, 0xff00ff, 0xaaffaa],
-            INTENSITY: 2.5,
-            DISTANCE: 100,
-            DECAY: 1.5,
-          },
-        },
-        ANIMATION: {
-          THROTTLE: 16, // ms between pointer move updates
-          ROTATION_SPEED: 0.002, // Base rotation for random layout
-          TRANSITION_DURATION: 1.5, // seconds for layout change
-          // --- Add specific animation params ---
-          GRID_IDLE_ROT_SPEED: 0.03,
-          SPIRAL_STRUCT_ROT_SPEED: 0.02,
-          SPIRAL_SELF_ROT_SPEED: 0.1,
-        },
-        PARTICLES: {
-          DESKTOP_COUNT: 7000,
-          MOBILE_COUNT: 3000,
-          SPREAD_RADIUS: 150,
-        },
-        LAYOUT: {
-          SPHERE: {
-            RADIUS: 25,
-            SPREAD: 0.05, // Randomness factor for radius
-            ORBIT_SPEED: 0.02, // Speed items orbit the center (0.01에서 0.02로 증가)
-            SELF_ROTATION_SPEED: 0.05, // Speed items spin (0.03에서 0.05로 증가)
-          },
-          GRID: {
-            COLUMNS: 10,
-            SPACING: 4,
-            POSITION_JITTER: 0.4,
-            ROTATION_JITTER: 0.15,
-          },
-          SPIRAL: {
-            RADIUS: 25,
-            TURNS: 2.5,
-            SPREAD: 0.1, // Radius randomness
-            HEIGHT_FACTOR: 1.2, // How tall the spiral is
-            WAVE_FREQ: 0.8, // Frequency of the up/down wave
-            WAVE_AMP: 4.5, // Amplitude of the up/down wave
-          },
-          RANDOM: {
-            SPREAD: 0.05, // Not used directly, SPREAD_RANGE defines area
-            FLOAT_AMPLITUDE: 0.1,
-            FLOAT_SPEED: 0.1,
-          },
-          // --- New Layout Configs ---
-          FLOW: {
-            NOISE_SCALE: 0.1, // 더 부드럽고 자연스러운 흐름을 위해 낮춤
-            SPEED: 0.06, // 패턴 변화를 적절한 속도로 조정
-            FORCE: 0.9, // 움직임의 강도를 자연스럽게 조정
-            ROTATION_DAMPING: 0.97, // 회전을 더 부드럽게
-            MAX_SPEED: 0.6, // 최대 속도를 적절하게 조정
-          },
-          WAVEGRID: {
-            // Inherits Grid settings for base layout
-            EFFECT_RADIUS: 15.0, // How far the mouse wave reaches
-            MAX_DISPLACEMENT: 2.0, // Max Z displacement
-            WAVE_SPEED: 3.0, // How fast the wave ripples
-            DAMPING: 0.9, // How quickly items return to base position (lower = slower)
-          },
-          PANORAMA: {
-            NUM_LAYERS: 5, // 레이어 수를 5개로 증가
-            LAYER_DEPTH: 10.0, // 레이어 간 거리를 더 줄여서 5개 레이어에 맞게 조정
-            RADIUS: 28.0, // 반경을 약각 줄여서 5개 레이어에 맞게 조정
-            ITEM_SPACING_X: 3.2, // 아이템 간 간격을 조정
-            ITEM_SPACING_Y: 3.2,
-            ARRANGEMENT: "cylindrical",
-            PARALLAX_FACTOR: 0.08, // 패럴랙스 효과를 더 강화
-            LAYER_ROTATION_SPEED: 0.015, // 회전 속도를 더 빠르게 조정
-            LAYER_OSCILLATION: {
-              // 레이어별 진동 효과 조정
-              AMPLITUDE: 0.6,
-              FREQUENCY: 0.4,
-            },
-          },
-        },
-      };
 
       let scene, camera, renderer, controls;
       const instancedMeshes = [];
@@ -525,7 +100,6 @@
       const pointer = new THREE.Vector2(); // Normalized device coordinates (-1 to +1)
       let INTERSECTED_INFO = null; // { originalIndex, meshGroup, localInstanceId }
       const clock = new THREE.Clock();
-      const textureCache = new Map();
       let sharedPlaneGeometry, sharedRaycastGeometry, sharedRaycastMaterial;
       let texturesLoaded = 0;
       let totalTexturesToLoad = 0;
@@ -897,8 +471,9 @@
 
         // Iterate through grouped instances and create InstancedMesh for each group
         for (const [imageUrl, group] of groupedInstances.entries()) {
-          const loadPromise = loadTexture(textureLoader, imageUrl)
-            .then((texture) => {
+          const loadPromise = (async () => {
+            try {
+              const texture = await loadTexture(textureLoader, imageUrl);
               texturesLoaded++; // Increment loaded count on success
               updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
 
@@ -974,14 +549,14 @@
               // Mark matrices for update
               visibleMeshGroup.instanceMatrix.needsUpdate = true;
               raycastMeshGroup.instanceMatrix.needsUpdate = true;
-            })
-            .catch((error) => {
+            } catch (error) {
               // Handle texture load failure for this group
               texturesLoaded++; // Still increment to avoid getting stuck
               updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
               console.error(`Failed to load texture ${imageUrl}:`, error);
               // Consider removing related instances or using a placeholder
-            });
+            }
+          })();
 
           loadPromises.push(loadPromise); // Add the promise to the array
         }
@@ -1098,18 +673,6 @@
 
         bgColorPicker.addEventListener("input", onBgColorChange);
         visitSiteButton.addEventListener("click", onVisitSiteClick);
-      }
-
-      // Throttle function to limit frequency of event handler calls
-      function throttle(func, limit) {
-        let inThrottle;
-        return function (...args) {
-          if (!inThrottle) {
-            func.apply(this, args);
-            inThrottle = true;
-            setTimeout(() => (inThrottle = false), limit);
-          }
-        };
       }
 
       function onWindowResize() {
@@ -2250,63 +1813,10 @@
       } // --- End animate() ---
 
       // --- Helper Functions ---
-      function easeInOutCubic(x) {
-        // Cubic easing function for smooth transitions
-        return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
-      }
-
-      async function loadTexture(loader, url) {
-        if (!url)
-          return Promise.reject(new Error("Texture URL is empty or invalid"));
-        // Return cached texture if available
-        if (textureCache.has(url)) {
-          const cached = textureCache.get(url);
-          if (cached instanceof Promise) return cached; // Return promise if still loading
-          if (cached instanceof THREE.Texture) return Promise.resolve(cached); // Return texture if loaded
-        }
-
-        // Load texture and cache the promise
-        const promise = new Promise((resolve, reject) => {
-          loader.load(
-            url,
-            (texture) => {
-              texture.colorSpace = THREE.SRGBColorSpace; // Correct color space for web images
-              texture.minFilter = THREE.LinearFilter; // Good quality filtering
-              texture.magFilter = THREE.LinearFilter;
-              texture.needsUpdate = true; // Ensure texture updates GPU
-              textureCache.set(url, texture); // Cache the loaded texture
-              resolve(texture);
-            },
-            undefined, // onProgress callback (optional)
-            (errorEvent) => {
-              console.error(`Error loading texture: ${url}`, errorEvent);
-              textureCache.delete(url); // Remove failed entry from cache
-              reject(new Error(`Failed to load texture ${url}`));
-            }
-          );
-        });
-        textureCache.set(url, promise); // Cache the promise itself initially
-        return promise;
-      }
-
-      function showError(message) {
-        // Display error message prominently
-        if (loaderElement) {
-          loaderElement.textContent = message;
-          loaderElement.style.color = "red";
-          loaderElement.style.display = "block";
-        } else {
-          // Fallback if loader element isn't found
-          const errorDiv = document.createElement("div");
-          errorDiv.style.cssText = `
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(200, 0, 0, 0.8); color: white; padding: 20px;
-            border-radius: 5px; z-index: 1000; text-align: center;
-          `;
-          errorDiv.textContent = message;
-          document.body.appendChild(errorDiv);
-        }
-      }
+      // function easeInOutCubic(x) {
+      //   // Cubic easing function for smooth transitions
+      //   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+      // }
     </script>
   </body>
 </html>
