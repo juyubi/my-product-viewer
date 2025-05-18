@@ -1,5 +1,5 @@
 const CONFIG = {
-  IMAGE_OBJECT_COUNT: 300,
+  IMAGE_OBJECT_COUNT: 250,
   SPREAD_RANGE: 60, // Used for Random and Flow initial spread
   DEFAULT_BG_COLOR: "#000000",
   HOVER_SCALE_FACTOR: 1.2,
@@ -44,7 +44,7 @@ const CONFIG = {
       SELF_ROTATION_SPEED: 0.05, // Speed items spin (0.03에서 0.05로 증가)
     },
     GRID: {
-      COLUMNS: 15,
+      COLUMNS: 12,
       SPACING: 4,
       POSITION_JITTER: 0.4,
       ROTATION_JITTER: 0.15,
