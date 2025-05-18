@@ -892,11 +892,6 @@
             selectedItemPanel.style.display = "block";
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
-
-            if (isMobile && controlsElement.classList.contains("collapsed")) {
-              controlsElement.classList.remove("collapsed");
-              toggleControlsButton.textContent = "✕";
-            }
           }
         }
       }

@@ -10,8 +10,8 @@ const CONFIG = {
       navigator.userAgent
     ),
   CAMERA: {
-    MOBILE: { Z: 55, MIN_DISTANCE: 3, MAX_DISTANCE: 120 },
-    DESKTOP: { Z: 40, MIN_DISTANCE: 3, MAX_DISTANCE: 100 },
+    MOBILE: { Z: 30, MIN_DISTANCE: 5, MAX_DISTANCE: 150 },
+    DESKTOP: { Z: 22, MIN_DISTANCE: 5, MAX_DISTANCE: 120 },
   },
   LIGHT: {
     AMBIENT: { COLOR: 0x808080, INTENSITY: 1.8 },
