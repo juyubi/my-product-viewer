@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Product Visualizer (Optimized + Creative Layouts)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div id="controlsContainer">
+      <div id="controls">
+        <img
+          id="logoImage"
+          src="https://i.imgur.com/fgJ3rAV.png"
+          alt="May I 2D Logo"
+        />
+
+        <div>
+          <input type="color" id="bgColorPicker" value="#000000" />
+        </div>
+
+        <div
+          id="layoutControls"
+          style="
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+          "
+        >
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <button
+              class="layout-button active"
+              data-layout="wavegrid"
+              title="Wave Grid"
+            >
+              Grid
+            </button>
+            <button class="layout-button" data-layout="sphere" title="Sphere">
+              Sphere
+            </button>
+            <button class="layout-button" data-layout="flow" title="Flow">
+              Free
+            </button>
+            <button
+              class="layout-button"
+              data-layout="panorama"
+              title="Panorama"
+            >
+              View
+            </button>
+          </div>
+        </div>
+
+        <div id="selectedItemPanel">
+          <img id="selectedItemImage" src="" alt="Selected product image" />
+          <button id="visitSiteButton" data-url="">Materialize</button>
+        </div>
+      </div>
+      <button id="toggleControlsButton">☰</button>
+    </div>
+
+    <div id="loader">Loading... 0%</div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from "three";
+      import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+      import products from "./data/products.js";
+      import CONFIG from "./js/config.js";
+      import {
+        throttle,
+        easeInOutCubic,
+        loadTexture,
+        showError,
+      } from "./js/utils.js";
+
+      // import { SimplexNoise } from 'three/addons/math/SimplexNoise.js'; // If using Three's built-in
+      // Or import from the separate library you included, e.g.:
+      // const simplex = new SimplexNoise(); // You'll need to include a noise library
+
+      let scene, camera, renderer, controls;
+      const instancedMeshes = [];
+      const raycastMeshes = [];
+      const instanceData = []; // Stores data for each logical instance
+      const pointLights = [];
+      let backgroundLight, backLight;
+      const raycaster = new THREE.Raycaster();
+      const pointer = new THREE.Vector2(); // Normalized device coordinates (-1 to +1)
+      let INTERSECTED_INFO = null; // { originalIndex, meshGroup, localInstanceId }
+      const clock = new THREE.Clock();
+      let sharedPlaneGeometry, sharedRaycastGeometry, sharedRaycastMaterial;
+      let texturesLoaded = 0;
+      let totalTexturesToLoad = 0;
+      let particleSystem;
+      const hoverColor = new THREE.Color(1, 1, 0.6); // Yellowish tint on hover
+      const normalColor = new THREE.Color(1, 1, 1); // Default color
+      let isMobile = false;
+      let currentLayout = "wavegrid"; // Default layout을 wavegrid로 변경
+      let transitionStartTime = 0;
+      let isTransitioning = false;
+      let startPositions = []; // Array of { x, y, z, quaternion }
+      let targetPositions = []; // Array of { x, y, z, quaternion, [optional layout specific data] }
+
+      // DOM Elements
+      const bgColorPicker = document.getElementById("bgColorPicker");
+      const controlsElement = document.getElementById("controls");
+      const controlsContainer = document.getElementById("controlsContainer");
+      const toggleControlsButton = document.getElementById(
+        "toggleControlsButton"
+      );
+      const selectedItemPanel = document.getElementById("selectedItemPanel");
+      const selectedItemImage = document.getElementById("selectedItemImage");
+      const visitSiteButton = document.getElementById("visitSiteButton");
+      const loaderElement = document.getElementById("loader");
+      const logoImageElement = document.getElementById("logoImage");
+
+      // Reusable Three.js objects
+      const tempMatrix = new THREE.Matrix4();
+      const tempObject = new THREE.Object3D(); // For calculations involving position/rotation
+      const tempPosition = new THREE.Vector3();
+      const tempQuaternion = new THREE.Quaternion();
+      const tempScale = new THREE.Vector3(1, 1, 1);
+      const hoverScaleVec = new THREE.Vector3(
+        CONFIG.HOVER_SCALE_FACTOR,
+        CONFIG.HOVER_SCALE_FACTOR,
+        CONFIG.HOVER_SCALE_FACTOR
+      );
+      const normalScaleVec = new THREE.Vector3(1, 1, 1);
+      const pointerWorldPosition = new THREE.Vector3(); // For Wave Grid interaction
+      const raycastPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0); // Invisible plane at Z=0 for raycasting
+
+      // Noise 함수 라이브러리 초기화
+      const simplex = new SimplexNoise(); // 라이브러리 인스턴스 생성
+      const noise = {
+        // 실제 simplex.noise3D 함수를 연결
+        simplex3: (x, y, z) => simplex.noise3D(x, y, z),
+        // 필요하다면 2D 노이즈도 연결
+        simplex2: (x, y) => simplex.noise2D(x, y),
+      };
+
+      init();
+      animate();
+
+      async function init() {
+        try {
+          // Logo setup
+          if (logoImageElement) {
+            logoImageElement.src = "https://i.imgur.com/fgJ3rAV.png"; // Your logo URL
+            logoImageElement.style.cursor = "pointer"; // 커서를 포인터로 변경
+            logoImageElement.addEventListener("click", () => {
+              window.open("https://mayi2d.shop", "_blank"); // 새 탭에서 열기
+            });
+          }
+
+          // Scene setup
+          scene = new THREE.Scene();
+          scene.fog = new THREE.FogExp2(
+            new THREE.Color(CONFIG.DEFAULT_BG_COLOR).getHex(),
+            0.01 // Fog density
+          );
+
+          // Detect mobile
+          isMobile =
+            /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+            window.innerWidth <= 768;
+
+          // Camera setup
+          camera = new THREE.PerspectiveCamera(
+            75, // Field of View
+            window.innerWidth / window.innerHeight, // Aspect Ratio
+            0.1, // Near clipping plane
+            1000 // Far clipping plane
+          );
+          camera.position.z = isMobile
+            ? CONFIG.CAMERA.MOBILE.Z
+            : CONFIG.CAMERA.DESKTOP.Z;
+
+          // Renderer setup
+          renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            powerPreference: isMobile ? "low-power" : "high-performance",
+          });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+          renderer.setClearColor(
+            new THREE.Color(CONFIG.DEFAULT_BG_COLOR).getHex()
+          );
+          document.body.appendChild(renderer.domElement);
+
+          // Controls setup
+          controls = new OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = true;
+          controls.dampingFactor = 0.05;
+          controls.screenSpacePanning = false; // Panning moves camera in plane parallel to screen
+          controls.minDistance = isMobile
+            ? CONFIG.CAMERA.MOBILE.MIN_DISTANCE
+            : CONFIG.CAMERA.DESKTOP.MIN_DISTANCE;
+          controls.maxDistance = isMobile
+            ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE
+            : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE;
+          controls.enableZoom = true;
+          controls.enablePan = !isMobile; // Disable panning on mobile for better touch rotation
+
+          // Lighting setup
+          const ambientLight = new THREE.AmbientLight(
+            CONFIG.LIGHT.AMBIENT.COLOR,
+            CONFIG.LIGHT.AMBIENT.INTENSITY
+          );
+          scene.add(ambientLight);
+
+          // Background Directional Light 추가
+          const backgroundDirectionalLight = new THREE.DirectionalLight(
+            0xffffff,
+            1.5
+          );
+          backgroundDirectionalLight.position.set(0, 0, -1);
+          scene.add(backgroundDirectionalLight);
+
+          // 배경 구 추가
+          const backgroundSphereGeo = new THREE.SphereGeometry(150, 32, 32);
+          const backgroundSphereMat = new THREE.MeshStandardMaterial({
+            color: 0x2e0854,
+            side: THREE.BackSide,
+            metalness: 0.0,
+            roughness: 0.03,
+          });
+          const backgroundSphere = new THREE.Mesh(
+            backgroundSphereGeo,
+            backgroundSphereMat
+          );
+          scene.add(backgroundSphere);
+
+          // 추가 조명
+          const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
+          topLight.position.set(0, 1, 0);
+          scene.add(topLight);
+
+          const sideLight = new THREE.DirectionalLight(0xffffff, 0.3);
+          sideLight.position.set(1, 0, 0);
+          scene.add(sideLight);
+
+          // 추가 포인트 라이트
+          const pointLight1 = new THREE.PointLight(0xffffff, 1.5, 200);
+          pointLight1.position.set(0, 50, 50);
+          scene.add(pointLight1);
+
+          const pointLight2 = new THREE.PointLight(0xffffff, 1.5, 200);
+          pointLight2.position.set(0, -50, -50);
+          scene.add(pointLight2);
+
+          // Background Point Lights (Subtle illumination)
+          backgroundLight = new THREE.PointLight(0xffffff, 2.5, 200, 1.5);
+          backgroundLight.position.set(0, 0, -100); // Behind the scene
+          scene.add(backgroundLight);
+          backLight = new THREE.PointLight(0xffffff, 1.5, 200, 1.5);
+          backLight.position.set(0, 0, 100); // In front
+          scene.add(backLight);
+
+          // Dynamic Point Lights (Colored, moving lights)
+          CONFIG.LIGHT.POINT.COLORS.forEach((color) => {
+            const pointLight = new THREE.PointLight(
+              color,
+              CONFIG.LIGHT.POINT.INTENSITY,
+              CONFIG.LIGHT.POINT.DISTANCE,
+              CONFIG.LIGHT.POINT.DECAY
+            );
+            // Initial random position and animation parameters
+            pointLight.position.set(
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2,
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2,
+              (Math.random() - 0.5) * CONFIG.SPREAD_RANGE * 1.2
+            );
+            pointLight.userData = {
+              angle: Math.random() * Math.PI * 2,
+              radius: 10 + Math.random() * 20,
+              speed:
+                (Math.random() + 0.5) * 0.4 * (Math.random() > 0.5 ? 1 : -1),
+              yOffset: (Math.random() - 0.5) * 15,
+            };
+            scene.add(pointLight);
+            pointLights.push(pointLight);
+          });
+
+          // Particle System
+          createParticles();
+
+          // Shared Geometries & Materials
+          sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
+          const clickPlaneScale = CONFIG.isMobile ? 2.0 : 1.5; // 모바일에서 더 큰 클릭 영역
+          sharedRaycastGeometry = new THREE.PlaneGeometry(
+            2.5 * clickPlaneScale,
+            2.5 * clickPlaneScale
+          );
+          sharedRaycastMaterial = new THREE.MeshBasicMaterial({
+            visible: false,
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.1,
+          });
+
+          // Setup Instanced Meshes (Loads textures and creates instances)
+          await setupGroupedInstances();
+
+          // Setup Event Listeners
+          setupEventListeners();
+
+          // Initialize with the default layout (Wavegrid)
+          // Set initial active button state
+          document
+            .querySelectorAll(".layout-button")
+            .forEach((btn) => btn.classList.remove("active"));
+          document
+            .querySelector(`.layout-button[data-layout="${currentLayout}"]`)
+            ?.classList.add("active");
+
+          // 초기 레이아웃 적용 시 애니메이션 없이 즉시 적용
+          targetPositions = calculateTargetPositions(currentLayout);
+          applyInstantLayout(targetPositions);
+
+          // 초기 레이아웃 적용 후 약간의 지연을 두고 상태 업데이트
+          setTimeout(() => {
+            isTransitioning = false;
+            console.log("Initial layout applied successfully");
+          }, 100);
+        } catch (error) {
+          console.error("Initialization error:", error);
+          showError("Error during initialization. Please refresh the page.");
+          if (loaderElement) loaderElement.textContent = "Error!";
+        }
+      }
+
+      function createParticles() {
+        const particleCount = isMobile
+          ? CONFIG.PARTICLES.MOBILE_COUNT
+          : CONFIG.PARTICLES.DESKTOP_COUNT;
+        const positions = new Float32Array(particleCount * 3);
+        const particleSpreadRadius = CONFIG.PARTICLES.SPREAD_RADIUS;
+
+        for (let i = 0; i < particleCount; i++) {
+          const i3 = i * 3;
+          // Distribute particles within a sphere volume
+          const u = Math.random();
+          const v = Math.random();
+          const theta = 2 * Math.PI * u; // Longitude
+          const phi = Math.acos(2 * v - 1); // Latitude
+          const r = Math.cbrt(Math.random()) * particleSpreadRadius; // Radius (cubic root for uniform volume distribution)
+
+          positions[i3] = r * Math.sin(phi) * Math.cos(theta);
+          positions[i3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+          positions[i3 + 2] = r * Math.cos(phi);
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3)
+        );
+
+        const material = new THREE.PointsMaterial({
+          color: 0xffffff,
+          size: isMobile ? 0.15 : 0.1,
+          sizeAttenuation: true, // Points get smaller further away
+          transparent: true,
+          opacity: 0.75,
+          depthWrite: false, // Avoid particles obscuring important objects
+        });
+
+        particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+        console.log(`Particle system created with ${particleCount} particles.`);
+      }
+
+      async function setupGroupedInstances() {
+        const loadingManager = new THREE.LoadingManager();
+        texturesLoaded = 0;
+        totalTexturesToLoad = 0;
+
+        // 디버깅을 위한 특정 인덱스 모니터링
+        const DEBUG_INDEX = 0; // 모니터링할 인덱스
+
+        // Loading manager callbacks
+        loadingManager.onProgress = (url, loaded, total) => {
+          // console.log(`Loading texture: ${url}. Loaded ${loaded} of ${total}`);
+        };
+        loadingManager.onLoad = () => {
+          console.log("All textures loaded via manager.");
+          // 디버깅: 특정 인덱스의 초기 데이터 상태 확인
+          if (instanceData[DEBUG_INDEX]) {
+            console.log(`[Setup] Instance ${DEBUG_INDEX} initial state:`, {
+              imageUrl: instanceData[DEBUG_INDEX].imageUrl,
+              purchaseUrl: instanceData[DEBUG_INDEX].purchaseUrl,
+              visibleMeshGroup: instanceData[DEBUG_INDEX].visibleMeshGroup
+                ? "exists"
+                : "null",
+              raycastMeshGroup: instanceData[DEBUG_INDEX].raycastMeshGroup
+                ? "exists"
+                : "null",
+              localInstanceId: instanceData[DEBUG_INDEX].localInstanceId,
+            });
+          }
+          checkLoadingComplete();
+        };
+        loadingManager.onError = (url) => {
+          console.error("Error loading texture via manager:", url);
+          // Assume texture failed, increment count to potentially finish loading state
+          texturesLoaded++;
+          updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+          checkLoadingComplete();
+        };
+
+        const textureLoader = new THREE.TextureLoader(loadingManager);
+        textureLoader.setCrossOrigin("anonymous"); // Handle CORS for images from other domains
+
+        // Shuffle products to vary initial display
+        const shuffledProducts = [...products].sort(() => Math.random() - 0.5);
+
+        // Group instances by image URL to create fewer InstancedMesh objects
+        const groupedInstances = new Map();
+        for (let i = 0; i < CONFIG.IMAGE_OBJECT_COUNT; i++) {
+          const productIndex = i % shuffledProducts.length; // Cycle through products
+          const product = shuffledProducts[productIndex];
+
+          if (!product || !product.imageUrl) {
+            console.warn(`Skipping instance ${i}: Missing product or imageUrl`);
+            continue;
+          }
+
+          // Initialize group if it doesn't exist
+          if (!groupedInstances.has(product.imageUrl)) {
+            groupedInstances.set(product.imageUrl, {
+              product: product,
+              originalIndices: [], // Store the original logical index (0 to IMAGE_OBJECT_COUNT-1)
+            });
+          }
+          groupedInstances.get(product.imageUrl).originalIndices.push(i);
+
+          // Initialize data structure for this logical instance
+          instanceData[i] = {
+            purchaseUrl: product.purchaseUrl,
+            imageUrl: product.imageUrl,
+            // -- Add state needed for specific layouts --
+            velocity: new THREE.Vector3(), // For 'flow' layout
+            angularVelocity: new THREE.Vector3(), // For 'flow' layout
+            targetZ: 0, // For 'wavegrid' layout target z
+            currentZOffset: 0, // For 'wavegrid' smooth animation
+            layerIndex: 0, // For 'panorama' layout
+            // -------------------------------------------
+            visibleMeshGroup: null, // Reference to the InstancedMesh it belongs to
+            raycastMeshGroup: null, // Reference to the corresponding raycast mesh
+            localInstanceId: -1, // Index within its InstancedMesh group
+          };
+        }
+
+        totalTexturesToLoad = groupedInstances.size;
+        if (loaderElement)
+          updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+
+        const loadPromises = []; // Array to hold all texture loading promises
+
+        // Iterate through grouped instances and create InstancedMesh for each group
+        for (const [imageUrl, group] of groupedInstances.entries()) {
+          const loadPromise = (async () => {
+            try {
+              const texture = await loadTexture(textureLoader, imageUrl);
+              texturesLoaded++; // Increment loaded count on success
+              updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+
+              // --- Create Visible Instanced Mesh ---
+              const visibleMaterial = new THREE.MeshBasicMaterial({
+                map: texture,
+                side: THREE.DoubleSide,
+                transparent: true,
+                alphaTest: 0.1, // Discard pixels with low alpha (prevents black borders on PNGs)
+                depthWrite: true, // Ensure correct depth sorting
+              });
+              const visibleMeshGroup = new THREE.InstancedMesh(
+                sharedPlaneGeometry,
+                visibleMaterial,
+                group.originalIndices.length // Number of instances in this group
+              );
+              // Add color buffer for hover effect
+              visibleMeshGroup.instanceColor =
+                new THREE.InstancedBufferAttribute(
+                  new Float32Array(group.originalIndices.length * 3),
+                  3
+                );
+              for (let j = 0; j < group.originalIndices.length; j++) {
+                visibleMeshGroup.setColorAt(j, normalColor); // Initialize with normal color
+              }
+              visibleMeshGroup.instanceColor.needsUpdate = true;
+              visibleMeshGroup.userData.imageUrl = imageUrl; // Store URL for reference if needed
+              scene.add(visibleMeshGroup);
+              instancedMeshes.push(visibleMeshGroup);
+
+              // --- Create Raycast Instanced Mesh (Invisible) ---
+              const raycastMeshGroup = new THREE.InstancedMesh(
+                sharedRaycastGeometry,
+                sharedRaycastMaterial,
+                group.originalIndices.length
+              );
+              raycastMeshGroup.visible = true; // raycastMeshGroup을 항상 활성화
+              scene.add(raycastMeshGroup);
+              raycastMeshes.push(raycastMeshGroup);
+
+              // --- Set Initial Random Matrix for Each Instance in the Group ---
+              group.originalIndices.forEach((originalIndex, localIndex) => {
+                // Set a random initial position and rotation
+                tempPosition.set(
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                  (Math.random() - 0.5) * CONFIG.SPREAD_RANGE
+                );
+                tempQuaternion.setFromEuler(
+                  new THREE.Euler(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                  )
+                );
+                tempScale.set(1, 1, 1);
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+
+                // Apply the same initial matrix to both visible and raycast meshes
+                visibleMeshGroup.setMatrixAt(localIndex, tempMatrix);
+                raycastMeshGroup.setMatrixAt(localIndex, tempMatrix);
+
+                // Link the logical instance data back to the mesh group and its local index
+                if (instanceData[originalIndex]) {
+                  instanceData[originalIndex].visibleMeshGroup =
+                    visibleMeshGroup;
+                  instanceData[originalIndex].raycastMeshGroup =
+                    raycastMeshGroup;
+                  instanceData[originalIndex].localInstanceId = localIndex;
+                }
+              });
+
+              // Mark matrices for update
+              visibleMeshGroup.instanceMatrix.needsUpdate = true;
+              raycastMeshGroup.instanceMatrix.needsUpdate = true;
+            } catch (error) {
+              // Handle texture load failure for this group
+              texturesLoaded++; // Still increment to avoid getting stuck
+              updateLoaderProgress(texturesLoaded, totalTexturesToLoad);
+              console.error(`Failed to load texture ${imageUrl}:`, error);
+              // Consider removing related instances or using a placeholder
+            }
+          })();
+
+          loadPromises.push(loadPromise); // Add the promise to the array
+        }
+
+        // Wait for all texture loading attempts to settle (resolve or reject)
+        await Promise.allSettled(loadPromises);
+        // Final check after all promises are settled
+        checkLoadingComplete();
+      }
+
+      function updateLoaderProgress(loaded, total) {
+        if (loaderElement) {
+          const percentage =
+            total > 0 ? Math.round((loaded / total) * 100) : 100;
+          loaderElement.textContent = `Loading Assets... ${percentage}%`;
+        }
+      }
+
+      function checkLoadingComplete() {
+        // Check if loading is actually complete
+        if (
+          texturesLoaded >= totalTexturesToLoad &&
+          loaderElement &&
+          loaderElement.style.display !== "none"
+        ) {
+          loaderElement.style.display = "none"; // Hide loader
+          console.log("Asset loading complete, setup finished.");
+
+          // Manage initial controls visibility based on screen size
+          if (isMobile) {
+            // Start collapsed on mobile, button shows '☰'
+            controlsElement.classList.add("collapsed");
+            toggleControlsButton.textContent = "☰";
+          } else {
+            // Start open on desktop, button shows '✕'
+            controlsElement.classList.remove("collapsed");
+            toggleControlsButton.textContent = "✕";
+          }
+        }
+      }
+
+      function setupEventListeners() {
+        window.addEventListener("resize", onWindowResize);
+
+        // 레이아웃 버튼 이벤트
+        document.querySelectorAll(".layout-button").forEach((button) => {
+          if (CONFIG.isMobile) {
+            // 모바일 터치 이벤트
+            button.addEventListener("touchstart", (e) => {
+              e.preventDefault();
+              const layout = button.getAttribute("data-layout");
+              if (layout !== currentLayout) {
+                changeLayout(layout);
+                document.querySelectorAll(".layout-button").forEach((btn) => {
+                  btn.classList.remove("active");
+                });
+                button.classList.add("active");
+              }
+            });
+          } else {
+            // 데스크톱 클릭 이벤트
+            button.addEventListener("click", () => {
+              const layout = button.getAttribute("data-layout");
+              if (layout !== currentLayout) {
+                changeLayout(layout);
+                document.querySelectorAll(".layout-button").forEach((btn) => {
+                  btn.classList.remove("active");
+                });
+                button.classList.add("active");
+              }
+            });
+          }
+        });
+
+        // 메뉴 토글 버튼 이벤트
+        if (CONFIG.isMobile) {
+          toggleControlsButton.addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            controlsElement.classList.toggle("collapsed");
+            toggleControlsButton.textContent =
+              controlsElement.classList.contains("collapsed") ? "☰" : "✕";
+          });
+        } else {
+          toggleControlsButton.addEventListener("click", () => {
+            controlsElement.classList.toggle("collapsed");
+            toggleControlsButton.textContent =
+              controlsElement.classList.contains("collapsed") ? "☰" : "✕";
+          });
+        }
+
+        // 메인 캔버스 이벤트
+        if (CONFIG.isMobile) {
+          document.addEventListener("touchstart", (e) => {
+            if (!controlsContainer.contains(e.target)) {
+              onPointerDown(e.touches[0]);
+            }
+          });
+
+          document.addEventListener(
+            "touchmove",
+            throttle((e) => {
+              if (!controlsContainer.contains(e.target)) {
+                onPointerMove(e.touches[0]);
+              }
+            }, CONFIG.ANIMATION.THROTTLE)
+          );
+        } else {
+          document.addEventListener(
+            "pointermove",
+            throttle(onPointerMove, CONFIG.ANIMATION.THROTTLE)
+          );
+          document.addEventListener("pointerdown", onPointerDown);
+        }
+
+        bgColorPicker.addEventListener("input", onBgColorChange);
+        visitSiteButton.addEventListener("click", onVisitSiteClick);
+      }
+
+      function onWindowResize() {
+        isMobile = window.innerWidth <= 768; // Update mobile status
+
+        // Update camera aspect ratio and projection matrix
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        // Update renderer size and pixel ratio
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Update controls constraints based on mobile status
+        controls.minDistance = isMobile
+          ? CONFIG.CAMERA.MOBILE.MIN_DISTANCE
+          : CONFIG.CAMERA.DESKTOP.MIN_DISTANCE;
+        controls.maxDistance = isMobile
+          ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE
+          : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE;
+        controls.enablePan = !isMobile; // Disable pan on mobile
+      }
+
+      function onPointerMove(event) {
+        // Calculate normalized device coordinates
+        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Update pointer world position for Wave Grid
+        if (currentLayout === "wavegrid") {
+          raycaster.setFromCamera(pointer, camera);
+          raycaster.ray.intersectPlane(raycastPlane, pointerWorldPosition); // Find intersection with Z=0 plane
+        }
+
+        handleIntersections(false); // Check for hover intersections
+      }
+
+      function onPointerDown(event) {
+        // Ignore clicks on the controls panel itself
+        if (controlsContainer.contains(event.target)) return;
+
+        // Calculate normalized device coordinates for the click
+        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Perform intersection check and handle selection if an item is clicked
+        handleIntersections(true); // Pass true to indicate a selection attempt
+      }
+
+      function onBgColorChange(event) {
+        const newColor = event.target.value;
+        document.body.style.backgroundColor = newColor; // Update body background
+        const threeColor = new THREE.Color(newColor);
+        if (scene.fog) {
+          scene.fog.color.set(threeColor); // Update fog color
+        }
+        renderer.setClearColor(threeColor); // Update renderer clear color
+      }
+
+      function onVisitSiteClick() {
+        const url = visitSiteButton.getAttribute("data-url");
+        if (url && url !== "https://mayi2d.shop/") {
+          // Ensure it's a valid, non-default URL
+          window.open(url, "_blank"); // Open in new tab
+        } else if (url) {
+          // Handle case where URL might be the base shop URL (optional)
+          console.log("Visit site clicked for base URL or invalid URL:", url);
+          window.open(url, "_blank"); // Or decide not to open
+        }
+      }
+
+      function handleIntersections(isSelectionAttempt) {
+        raycaster.setFromCamera(pointer, camera);
+
+        // 클릭 감지 설정 개선
+        raycaster.params.Line.threshold = 0.3;
+        raycaster.params.Points.threshold = 0.3;
+
+        if (CONFIG.isMobile) {
+          raycaster.params.Points.threshold = Math.max(
+            CONFIG.TOUCH_TOLERANCE,
+            0.3
+          );
+        }
+
+        // 모든 raycastMeshes에 대해 교차 검사
+        const intersects = raycaster.intersectObjects(raycastMeshes, true);
+        let newIntersectedInfo = null;
+
+        if (intersects.length > 0) {
+          const intersect = intersects[0];
+          if (intersect.instanceId !== undefined) {
+            const raycastMeshGroup = intersect.object;
+            const localInstanceId = intersect.instanceId;
+
+            // 해당 raycastMeshGroup에 속한 모든 인스턴스 데이터 검색
+            const originalIndex = instanceData.findIndex(
+              (data) =>
+                data &&
+                data.raycastMeshGroup === raycastMeshGroup &&
+                data.localInstanceId === localInstanceId
+            );
+
+            if (originalIndex !== -1) {
+              const data = instanceData[originalIndex];
+              if (data && data.visibleMeshGroup) {
+                // 레이아웃별 클릭 감지 거리 조정
+                let maxDistance;
+                switch (currentLayout) {
+                  case "panorama":
+                    maxDistance = 400;
+                    break;
+                  case "sphere":
+                    maxDistance = 300;
+                    break;
+                  case "flow":
+                    maxDistance = 250;
+                    break;
+                  default:
+                    maxDistance = 200;
+                }
+
+                if (intersect.distance < maxDistance) {
+                  newIntersectedInfo = {
+                    originalIndex,
+                    meshGroup: data.visibleMeshGroup,
+                    localInstanceId,
+                    data: data,
+                  };
+                }
+              }
+            }
+          }
+        }
+
+        // 이전 hover 상태 제거
+        if (
+          INTERSECTED_INFO &&
+          (!newIntersectedInfo ||
+            INTERSECTED_INFO.originalIndex !== newIntersectedInfo.originalIndex)
+        ) {
+          const oldData = instanceData[INTERSECTED_INFO.originalIndex];
+          if (oldData?.visibleMeshGroup && oldData.localInstanceId !== -1) {
+            try {
+              // Reset scale
+              INTERSECTED_INFO.meshGroup.getMatrixAt(
+                INTERSECTED_INFO.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              tempScale.copy(normalScaleVec);
+              tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+              INTERSECTED_INFO.meshGroup.setMatrixAt(
+                INTERSECTED_INFO.localInstanceId,
+                tempMatrix
+              );
+              INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
+
+              // Reset color
+              INTERSECTED_INFO.meshGroup.setColorAt(
+                INTERSECTED_INFO.localInstanceId,
+                normalColor
+              );
+              INTERSECTED_INFO.meshGroup.instanceColor.needsUpdate = true;
+            } catch (e) {
+              console.error("Error resetting hover state:", e);
+            }
+          }
+        }
+
+        // 새로운 hover 상태 적용
+        if (
+          newIntersectedInfo &&
+          (!INTERSECTED_INFO ||
+            INTERSECTED_INFO.originalIndex !== newIntersectedInfo.originalIndex)
+        ) {
+          const newData = instanceData[newIntersectedInfo.originalIndex];
+          if (newData?.visibleMeshGroup && newData.localInstanceId !== -1) {
+            try {
+              // Apply hover scale
+              newIntersectedInfo.meshGroup.getMatrixAt(
+                newIntersectedInfo.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              tempScale.copy(hoverScaleVec);
+              tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+              newIntersectedInfo.meshGroup.setMatrixAt(
+                newIntersectedInfo.localInstanceId,
+                tempMatrix
+              );
+              newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
+
+              // Apply hover color
+              newIntersectedInfo.meshGroup.setColorAt(
+                newIntersectedInfo.localInstanceId,
+                hoverColor
+              );
+              newIntersectedInfo.meshGroup.instanceColor.needsUpdate = true;
+            } catch (e) {
+              console.error("Error applying hover state:", e);
+            }
+          }
+        }
+
+        INTERSECTED_INFO = newIntersectedInfo;
+
+        // 클릭 처리
+        if (isSelectionAttempt && newIntersectedInfo) {
+          const data = instanceData[newIntersectedInfo.originalIndex];
+          if (data) {
+            selectedItemImage.src = data.imageUrl;
+            selectedItemImage.alt = "Selected product";
+            visitSiteButton.setAttribute("data-url", data.purchaseUrl);
+            selectedItemPanel.style.display = "block";
+            visitSiteButton.disabled =
+              !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
+
+            if (isMobile && controlsElement.classList.contains("collapsed")) {
+              controlsElement.classList.remove("collapsed");
+              toggleControlsButton.textContent = "✕";
+            }
+          }
+        }
+      }
+
+      // Function to apply layout positions instantly without animation
+      function applyInstantLayout(positions) {
+        if (!positions || positions.length !== instanceData.length) {
+          console.error("Cannot apply instant layout: Invalid positions data.");
+          return;
+        }
+        let matrixNeedsUpdate = false;
+        instanceData.forEach((data, i) => {
+          if (
+            data &&
+            data.visibleMeshGroup &&
+            data.localInstanceId !== -1 &&
+            positions[i]
+          ) {
+            const target = positions[i];
+            tempPosition.set(target.x, target.y, target.z);
+            // Use target quaternion if available, otherwise keep current rotation
+            if (target.quaternion) {
+              tempQuaternion.copy(target.quaternion);
+            } else {
+              // Get current quaternion if not specified by layout
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(
+                new THREE.Vector3(),
+                tempQuaternion,
+                tempScale
+              ); // Only need quaternion
+            }
+            tempScale.set(1, 1, 1); // Reset scale
+
+            tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+            data.visibleMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            matrixNeedsUpdate = true;
+
+            // Store layout-specific data if needed (e.g., baseZ for wavegrid)
+            if (target.baseZ !== undefined) data.targetZ = target.baseZ;
+            if (target.layerIndex !== undefined)
+              data.layerIndex = target.layerIndex;
+          }
+        });
+
+        if (matrixNeedsUpdate) {
+          instancedMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+          raycastMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+          console.log(`Applied initial layout: ${currentLayout}`);
+        }
+      }
+
+      function changeLayout(layoutType) {
+        if (
+          !instanceData.length ||
+          layoutType === currentLayout ||
+          isTransitioning
+        )
+          return;
+
+        console.log(`Changing layout to: ${layoutType}`);
+        currentLayout = layoutType;
+        isTransitioning = true;
+        transitionStartTime = clock.getElapsedTime();
+
+        // Store starting positions and rotations
+        startPositions = instanceData.map((data) => {
+          if (data && data.visibleMeshGroup && data.localInstanceId !== -1) {
+            data.visibleMeshGroup.getMatrixAt(data.localInstanceId, tempMatrix);
+            tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+            return {
+              x: tempPosition.x,
+              y: tempPosition.y,
+              z: tempPosition.z,
+              quaternion: tempQuaternion.clone(),
+            };
+          }
+          return { x: 0, y: 0, z: 0, quaternion: new THREE.Quaternion() };
+        });
+
+        // Calculate target positions and rotations for the new layout
+        targetPositions = calculateTargetPositions(layoutType);
+
+        // 레이아웃 전환 시 raycastMeshes 업데이트 보장
+        instanceData.forEach((data, i) => {
+          if (
+            data &&
+            data.visibleMeshGroup &&
+            data.raycastMeshGroup &&
+            data.localInstanceId !== -1
+          ) {
+            data.visibleMeshGroup.getMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.instanceMatrix.needsUpdate = true;
+          }
+        });
+      }
+
+      function calculateTargetPositions(layoutType) {
+        const totalInstances = instanceData.length;
+        const positions = []; // Array to store { x, y, z, quaternion, [optional data] }
+
+        switch (layoutType) {
+          case "sphere": {
+            // Added block scope
+            const { RADIUS, SPREAD, ORBIT_SPEED, SELF_ROTATION_SPEED } =
+              CONFIG.LAYOUT.SPHERE;
+            const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // For Fibonacci sphere distribution
+
+            for (let i = 0; i < totalInstances; i++) {
+              const y = 1 - (i / (totalInstances - 1)) * 2; // -1 to 1
+              const radiusAtY = Math.sqrt(1 - y * y);
+              const theta = goldenAngle * i;
+              const x = Math.cos(theta) * radiusAtY;
+              const z = Math.sin(theta) * radiusAtY;
+
+              const finalRadius =
+                RADIUS * (1 + (Math.random() - 0.5) * SPREAD * 2);
+              const pos = new THREE.Vector3(
+                x * finalRadius,
+                y * finalRadius,
+                z * finalRadius
+              );
+
+              // Calculate orientation to face outwards
+              tempObject.position.copy(pos);
+              if (
+                tempObject.position.distanceTo(new THREE.Vector3(0, 0, 0)) <
+                0.001
+              ) {
+                // 위치가 거의 동일한 경우 기본 방향 설정
+                tempObject.quaternion.identity();
+                tempObject.rotation.y = Math.PI; // 기본적으로 뒤를 보도록 설정
+              } else {
+                tempObject.lookAt(0, 0, 0); // Look at center
+                tempObject.rotation.y += Math.PI; // Turn around to face out
+              }
+
+              positions.push({
+                x: pos.x,
+                y: pos.y,
+                z: pos.z,
+                quaternion: tempObject.quaternion.clone(),
+              });
+            }
+            break;
+          } // End sphere case
+
+          case "grid": // Fall through to wavegrid for base calculation
+          case "wavegrid": {
+            // Added block scope
+            const { COLUMNS, SPACING, POSITION_JITTER, ROTATION_JITTER } =
+              CONFIG.LAYOUT.GRID;
+            const rows = Math.ceil(totalInstances / COLUMNS);
+
+            for (let i = 0; i < totalInstances; i++) {
+              const row = Math.floor(i / COLUMNS);
+              const col = i % COLUMNS;
+
+              const baseX = (col - (COLUMNS - 1) / 2) * SPACING;
+              const baseY = (row - (rows - 1) / 2) * SPACING;
+              const baseZ = 0; // Base Z for grid
+
+              const finalX = baseX + (Math.random() - 0.5) * POSITION_JITTER;
+              const finalY = baseY + (Math.random() - 0.5) * POSITION_JITTER;
+              const finalZ =
+                baseZ + (Math.random() - 0.5) * POSITION_JITTER * 0.5; // Slight Z jitter
+
+              const randomZRotation = (Math.random() - 0.5) * ROTATION_JITTER;
+              const targetQuaternion = new THREE.Quaternion().setFromEuler(
+                new THREE.Euler(0, 0, randomZRotation) // Face camera with Z jitter
+              );
+
+              positions.push({
+                x: finalX,
+                y: finalY,
+                z: finalZ, // This is the initial position, targetZ will be baseZ
+                quaternion: targetQuaternion,
+                baseZ: baseZ, // Store the target base Z specifically for wavegrid animation
+              });
+            }
+            break;
+          } // End grid/wavegrid case
+
+          case "spiral": {
+            // Added block scope
+            const {
+              RADIUS,
+              TURNS,
+              SPREAD,
+              HEIGHT_FACTOR,
+              WAVE_FREQ,
+              WAVE_AMP,
+            } = CONFIG.LAYOUT.SPIRAL;
+
+            for (let i = 0; i < totalInstances; i++) {
+              const t = i / (totalInstances - 1); // 0 to 1
+              const angle = t * TURNS * Math.PI * 2;
+              const currentRadius =
+                RADIUS * (1 + (Math.random() - 0.5) * SPREAD * 2);
+              const x = currentRadius * Math.cos(angle);
+              const y = currentRadius * Math.sin(angle);
+              // Z position with wave and height scaling
+              const z =
+                Math.sin(t * Math.PI * WAVE_FREQ) * WAVE_AMP * HEIGHT_FACTOR;
+
+              const pos = new THREE.Vector3(x, y, z);
+
+              // Orientation: Look towards the Z-axis at the same height
+              const lookAtPoint = new THREE.Vector3(0, 0, z);
+              tempObject.position.copy(pos);
+              tempObject.lookAt(lookAtPoint);
+
+              positions.push({
+                x: pos.x,
+                y: pos.y,
+                z: pos.z,
+                quaternion: tempObject.quaternion.clone(),
+              });
+            }
+            break;
+          } // End spiral case
+
+          case "flow": {
+            // Added block scope
+            // Flow layout doesn't have fixed target positions.
+            // Initialize randomly like the 'random' layout.
+            // The actual movement happens entirely in the animate() function.
+            for (let i = 0; i < totalInstances; i++) {
+              positions.push({
+                x: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                y: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                z: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                // No specific quaternion target, let it animate freely
+                quaternion: new THREE.Quaternion().setFromEuler(
+                  new THREE.Euler(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                  )
+                ),
+              });
+              // Reset velocities when switching to flow
+              if (instanceData[i]) {
+                instanceData[i].velocity.set(0, 0, 0);
+                instanceData[i].angularVelocity.set(0, 0, 0);
+              }
+            }
+            break;
+          } // End flow case
+
+          case "panorama": {
+            // Added block scope
+            const {
+              NUM_LAYERS,
+              LAYER_DEPTH,
+              RADIUS,
+              ITEM_SPACING_X,
+              ITEM_SPACING_Y,
+              ARRANGEMENT,
+              PARALLAX_FACTOR,
+              LAYER_OSCILLATION,
+            } = CONFIG.LAYOUT.PANORAMA;
+            const instancesPerLayer = Math.ceil(totalInstances / NUM_LAYERS);
+            const centerLayerOffset = ((NUM_LAYERS - 1) * LAYER_DEPTH) / 2; // Center Z = 0
+
+            for (let i = 0; i < totalInstances; i++) {
+              const layerIndex = Math.floor(i / instancesPerLayer);
+              const indexInLayer = i % instancesPerLayer;
+              const layerZ = layerIndex * LAYER_DEPTH - centerLayerOffset;
+
+              let x,
+                y,
+                z = layerZ;
+              let targetQuaternion = new THREE.Quaternion();
+
+              if (ARRANGEMENT === "cylindrical") {
+                const angle = (indexInLayer / instancesPerLayer) * Math.PI * 2;
+                // Adjust radius slightly per layer (optional)
+                const layerRadius = RADIUS * (1 - layerIndex * 0.05);
+                x = Math.cos(angle) * layerRadius;
+                y = Math.sin(angle) * layerRadius;
+
+                // Orient to face the center (Y-axis)
+                tempObject.position.set(x, y, z);
+                tempObject.lookAt(0, 0, z); // Look towards center axis at same Z
+                targetQuaternion.copy(tempObject.quaternion);
+              } else {
+                // Planar arrangement
+                const itemsPerRow = Math.floor((RADIUS * 2) / ITEM_SPACING_X); // Estimate items per row
+                const col = indexInLayer % itemsPerRow;
+                const row = Math.floor(indexInLayer / itemsPerRow);
+                x = (col - (itemsPerRow - 1) / 2) * ITEM_SPACING_X;
+                y =
+                  (row - Math.floor(instancesPerLayer / itemsPerRow / 2)) *
+                  ITEM_SPACING_Y; // Center vertically
+
+                // Orient to face the camera (simple Z rotation is enough)
+                targetQuaternion.setFromEuler(new THREE.Euler(0, 0, 0));
+              }
+
+              positions.push({
+                x: x + (Math.random() - 0.5) * 0.5, // Add slight jitter
+                y: y + (Math.random() - 0.5) * 0.5,
+                z: z,
+                quaternion: targetQuaternion,
+                layerIndex: layerIndex, // Store layer index for parallax/animation
+              });
+            }
+            break;
+          } // End panorama case
+
+          case "random":
+          default: {
+            // Added block scope
+            for (let i = 0; i < totalInstances; i++) {
+              positions.push({
+                x: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                y: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                z: (Math.random() - 0.5) * CONFIG.SPREAD_RANGE,
+                // Random initial orientation
+                quaternion: new THREE.Quaternion().setFromEuler(
+                  new THREE.Euler(
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2,
+                    Math.random() * Math.PI * 2
+                  )
+                ),
+              });
+            }
+            break;
+          } // End random/default case
+        } // End switch
+
+        return positions;
+      }
+
+      // --- Main Animation Loop ---
+      function animate() {
+        requestAnimationFrame(animate);
+        const delta = clock.getDelta();
+        const elapsedTime = clock.getElapsedTime();
+
+        // 디버깅을 위한 특정 인덱스 모니터링
+        const DEBUG_INDEX = 0; // 모니터링할 인덱스
+        const DEBUG_INTERVAL = 1000; // 1초마다 로그 출력
+        const shouldLog = Math.floor(elapsedTime * 1000) % DEBUG_INTERVAL === 0;
+
+        let matrixNeedsUpdate = false;
+
+        // --- Layout Transition Animation ---
+        if (isTransitioning) {
+          const transitionProgress = Math.min(
+            (elapsedTime - transitionStartTime) /
+              CONFIG.ANIMATION.TRANSITION_DURATION,
+            1.0
+          );
+          const easeProgress = easeInOutCubic(transitionProgress);
+
+          // 디버깅: 전환 중인 특정 인덱스의 상태 확인
+          if (shouldLog && instanceData[DEBUG_INDEX]) {
+            const data = instanceData[DEBUG_INDEX];
+            if (data.visibleMeshGroup && data.localInstanceId !== -1) {
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              console.log(`[Transition] Instance ${DEBUG_INDEX} state:`, {
+                position: tempPosition.toArray(),
+                rotation: tempQuaternion.toArray(),
+                scale: tempScale.toArray(),
+                progress: transitionProgress,
+                easeProgress: easeProgress,
+              });
+            }
+          }
+
+          instanceData.forEach((data, i) => {
+            if (
+              data &&
+              data.visibleMeshGroup && // Check if mesh group exists
+              data.localInstanceId !== -1 && // Check for valid local index
+              startPositions[i] && // Check if start position exists
+              targetPositions[i] // Check if target position exists
+            ) {
+              try {
+                // Get current matrix (needed for scale preservation if any)
+                // data.visibleMeshGroup.getMatrixAt(data.localInstanceId, tempMatrix);
+                // tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+                // NOTE: For simplicity during transition, we'll lerp position and slerp quaternion directly
+                // and apply a scale of 1, discarding any temporary hover scale.
+
+                const start = startPositions[i];
+                const target = targetPositions[i];
+
+                // Interpolate Position (Lerp)
+                tempPosition.lerpVectors(
+                  new THREE.Vector3(start.x, start.y, start.z),
+                  new THREE.Vector3(target.x, target.y, target.z),
+                  easeProgress
+                );
+
+                // Interpolate Rotation (Slerp)
+                // Ensure both start and target quaternions are valid
+                const startQuat = start.quaternion || new THREE.Quaternion();
+                const targetQuat = target.quaternion || new THREE.Quaternion(); // Use identity if target has no rotation
+                tempQuaternion.slerpQuaternions(
+                  startQuat,
+                  targetQuat,
+                  easeProgress
+                );
+
+                // Apply Normal Scale during transition
+                tempScale.set(1, 1, 1);
+
+                // Compose and set the matrix
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                data.visibleMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                // Update raycast mesh as well
+                data.raycastMeshGroup?.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                matrixNeedsUpdate = true;
+
+                // Store layout-specific data at the start of transition if needed for the target layout
+                if (transitionProgress < 0.1) {
+                  // Only at the very beginning
+                  if (target.baseZ !== undefined) data.targetZ = target.baseZ;
+                  if (target.layerIndex !== undefined)
+                    data.layerIndex = target.layerIndex;
+                  // Reset flow velocity at start of transition away from flow
+                  if (currentLayout !== "flow") {
+                    data.velocity?.set(0, 0, 0);
+                    data.angularVelocity?.set(0, 0, 0);
+                  }
+                  // Reset wave offset
+                  data.currentZOffset = 0;
+                }
+              } catch (error) {
+                console.error(
+                  `Error during transition for instance ${i}:`,
+                  error,
+                  data,
+                  start,
+                  target
+                );
+              }
+            }
+          }); // End instance loop
+
+          // --- Transition Completion ---
+          if (transitionProgress >= 1.0) {
+            isTransitioning = false;
+            console.log("Layout transition complete.");
+
+            // 레이아웃 전환 완료 후 모든 메시 업데이트
+            instanceData.forEach((data, i) => {
+              if (
+                data &&
+                data.visibleMeshGroup &&
+                data.raycastMeshGroup &&
+                data.localInstanceId !== -1 &&
+                targetPositions[i]
+              ) {
+                const target = targetPositions[i];
+                tempPosition.set(target.x, target.y, target.z);
+                tempQuaternion.copy(
+                  target.quaternion || new THREE.Quaternion()
+                );
+                tempScale.set(1, 1, 1);
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+
+                // visibleMeshGroup과 raycastMeshGroup 모두 업데이트
+                data.visibleMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                data.raycastMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                data.visibleMeshGroup.instanceMatrix.needsUpdate = true;
+                data.raycastMeshGroup.instanceMatrix.needsUpdate = true;
+
+                // 레이아웃별 데이터 업데이트
+                if (target.baseZ !== undefined) data.targetZ = target.baseZ;
+                if (target.layerIndex !== undefined)
+                  data.layerIndex = target.layerIndex;
+                if (currentLayout !== "flow") {
+                  data.velocity?.set(0, 0, 0);
+                  data.angularVelocity?.set(0, 0, 0);
+                }
+                data.currentZOffset = 0;
+              }
+            });
+            matrixNeedsUpdate = true; // Ensure final snap is updated
+          }
+        } else {
+          // --- Not Transitioning - Apply Layout-Specific Idle Animations ---
+
+          // 디버깅: 일반 애니메이션 중인 특정 인덱스의 상태 확인
+          if (shouldLog && instanceData[DEBUG_INDEX]) {
+            const data = instanceData[DEBUG_INDEX];
+            if (data.visibleMeshGroup && data.localInstanceId !== -1) {
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+              console.log(`[Animation] Instance ${DEBUG_INDEX} state:`, {
+                layout: currentLayout,
+                position: tempPosition.toArray(),
+                rotation: tempQuaternion.toArray(),
+                scale: tempScale.toArray(),
+                isHovered: INTERSECTED_INFO?.originalIndex === DEBUG_INDEX,
+              });
+            }
+          }
+
+          instanceData.forEach((data, i) => {
+            if (
+              data &&
+              data.visibleMeshGroup &&
+              data.raycastMeshGroup &&
+              data.localInstanceId !== -1
+            ) {
+              try {
+                // Get current matrix state
+                data.visibleMeshGroup.getMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                tempMatrix.decompose(tempPosition, tempQuaternion, tempScale);
+
+                const isHovered =
+                  INTERSECTED_INFO && INTERSECTED_INFO.originalIndex === i;
+
+                // Apply hover scale *before* layout animation modifies scale
+                if (isHovered && !tempScale.equals(hoverScaleVec)) {
+                  tempScale.copy(hoverScaleVec); // Apply hover scale immediately
+                } else if (!isHovered && !tempScale.equals(normalScaleVec)) {
+                  tempScale.copy(normalScaleVec); // Apply normal scale immediately
+                }
+
+                // --- Layout Specific Animations ---
+                switch (currentLayout) {
+                  case "sphere": {
+                    // CONFIG 객체의 값을 직접 사용
+                    const ORBIT_SPEED = CONFIG.LAYOUT.SPHERE.ORBIT_SPEED;
+                    const SELF_ROTATION_SPEED =
+                      CONFIG.LAYOUT.SPHERE.SELF_ROTATION_SPEED;
+
+                    // Orbit around Y axis
+                    const orbitQuat = new THREE.Quaternion().setFromAxisAngle(
+                      new THREE.Vector3(0, 1, 0),
+                      ORBIT_SPEED * delta
+                    );
+                    tempPosition.applyQuaternion(orbitQuat);
+
+                    // Re-orient to face outwards after orbiting
+                    tempObject.position.copy(tempPosition);
+                    tempObject.lookAt(0, 0, 0); // Look at center
+                    tempObject.rotation.y += Math.PI; // Turn around to face out
+                    const baseQuaternion = tempObject.quaternion.clone(); // 기본 방향 (바깥쪽)
+
+                    // Apply self-rotation (around local Y axis)
+                    const selfRotateQuat =
+                      new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        SELF_ROTATION_SPEED * delta
+                      );
+
+                    // 수정된 Quaternion 적용 로직 유지
+                    tempQuaternion.copy(baseQuaternion);
+                    tempQuaternion.premultiply(selfRotateQuat);
+
+                    break;
+                  }
+                  case "grid": {
+                    // Mostly static, maybe a very slow idle rotation?
+                    const { GRID_IDLE_ROT_SPEED } = CONFIG.ANIMATION;
+                    if (GRID_IDLE_ROT_SPEED > 0) {
+                      const idleRotateQuat =
+                        new THREE.Quaternion().setFromAxisAngle(
+                          new THREE.Vector3(0, 0, 1),
+                          GRID_IDLE_ROT_SPEED * delta * (i % 2 === 0 ? 1 : -1)
+                        ); // Vary direction
+                      tempQuaternion.premultiply(idleRotateQuat);
+                    }
+                    break;
+                  }
+                  case "wavegrid": {
+                    const {
+                      EFFECT_RADIUS,
+                      MAX_DISPLACEMENT,
+                      WAVE_SPEED,
+                      DAMPING,
+                    } = CONFIG.LAYOUT.WAVEGRID;
+                    const baseZ = data.targetZ !== undefined ? data.targetZ : 0; // Use stored base Z
+
+                    // Calculate distance from pointer in XZ plane (or use 3D distance)
+                    const dist = tempPosition.distanceTo(pointerWorldPosition);
+                    let waveOffset = 0;
+
+                    if (dist < EFFECT_RADIUS) {
+                      // Calculate wave displacement based on distance and time
+                      const distanceFactor = 1.0 - dist / EFFECT_RADIUS; // 1 at center, 0 at edge
+                      // Use Math.pow for sharper falloff, or keep linear
+                      const waveFactor = Math.pow(distanceFactor, 2); // Sharper falloff
+                      waveOffset =
+                        waveFactor *
+                        MAX_DISPLACEMENT *
+                        Math.sin(elapsedTime * WAVE_SPEED - dist * 0.5); // Sine wave based on time and distance
+                    }
+
+                    // Smoothly interpolate the current offset towards the target offset
+                    data.currentZOffset = THREE.MathUtils.lerp(
+                      data.currentZOffset,
+                      waveOffset,
+                      1 - DAMPING
+                    );
+
+                    tempPosition.z = baseZ + data.currentZOffset; // Apply smoothed offset
+
+                    // Optional: Add slight rotation based on wave?
+                    // const rotFactor = data.currentZOffset * 0.1;
+                    // const waveRotQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotFactor, 0, 0));
+                    // tempQuaternion.premultiply(waveRotQuat);
+
+                    break;
+                  }
+                  case "spiral": {
+                    const { SPIRAL_STRUCT_ROT_SPEED, SPIRAL_SELF_ROT_SPEED } =
+                      CONFIG.ANIMATION;
+                    // Rotate the whole structure around Z axis
+                    if (SPIRAL_STRUCT_ROT_SPEED > 0) {
+                      const structRotateQuat =
+                        new THREE.Quaternion().setFromAxisAngle(
+                          new THREE.Vector3(0, 0, 1),
+                          SPIRAL_STRUCT_ROT_SPEED * delta
+                        );
+                      tempPosition.applyQuaternion(structRotateQuat);
+                    }
+
+                    // Re-orient to look at Z-axis after structure rotation
+                    const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
+                    tempObject.position.copy(tempPosition);
+                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                      // 위치가 거의 동일한 경우 기본 방향 설정
+                      tempObject.quaternion.identity();
+                    } else {
+                      tempObject.lookAt(lookAtPoint);
+                    }
+                    const baseQuaternion = tempObject.quaternion.clone();
+
+                    // Apply self-rotation (tumbling around local Y)
+                    const selfRotateQuat =
+                      new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        SPIRAL_SELF_ROT_SPEED * delta
+                      );
+                    tempQuaternion
+                      .copy(baseQuaternion)
+                      .premultiply(selfRotateQuat); // Apply base orientation, then self-rotation
+
+                    break;
+                  }
+                  case "flow": {
+                    const {
+                      NOISE_SCALE,
+                      SPEED,
+                      FORCE,
+                      ROTATION_DAMPING,
+                      MAX_SPEED,
+                    } = CONFIG.LAYOUT.FLOW;
+                    const noiseTime = elapsedTime * SPEED;
+
+                    // --- Calculate Flow Field Force using Noise ---
+                    // Placeholder: Use simplex3 noise function here
+                    // Ensure you have imported/defined 'noise.simplex3'
+                    const noiseValX =
+                      noise.simplex3(
+                        tempPosition.x * NOISE_SCALE,
+                        tempPosition.y * NOISE_SCALE,
+                        noiseTime
+                      ) || 0;
+                    const noiseValY =
+                      noise.simplex3(
+                        tempPosition.y * NOISE_SCALE,
+                        tempPosition.z * NOISE_SCALE,
+                        noiseTime
+                      ) || 0;
+                    const noiseValZ =
+                      noise.simplex3(
+                        tempPosition.z * NOISE_SCALE,
+                        tempPosition.x * NOISE_SCALE,
+                        noiseTime
+                      ) || 0;
+
+                    // Create force vector from noise, normalize, and scale
+                    const forceVector = new THREE.Vector3(
+                      noiseValX,
+                      noiseValY,
+                      noiseValZ
+                    );
+                    forceVector.normalize().multiplyScalar(FORCE * delta); // Apply force over time
+
+                    // --- Update Velocity & Position ---
+                    data.velocity.add(forceVector);
+                    // Clamp velocity to max speed
+                    if (data.velocity.length() > MAX_SPEED) {
+                      data.velocity.normalize().multiplyScalar(MAX_SPEED);
+                    }
+                    tempPosition.addScaledVector(data.velocity, delta); // Update position based on velocity
+
+                    // --- Calculate Rotation based on Velocity Direction ---
+                    if (data.velocity.lengthSq() > 0.001) {
+                      // Only rotate if moving significantly
+                      // Create a target quaternion that aligns Z-axis with velocity
+                      tempObject.position.copy(tempPosition);
+                      const lookAtPoint = tempPosition
+                        .clone()
+                        .add(data.velocity);
+                      if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                        // 위치가 거의 동일한 경우 기본 방향 설정
+                        tempObject.quaternion.identity();
+                      } else {
+                        tempObject.lookAt(lookAtPoint); // Look in direction of movement
+                      }
+                      const targetFlowQuat = tempObject.quaternion;
+
+                      // Slerp towards the target rotation for smoother turning
+                      tempQuaternion.slerp(targetFlowQuat, 0.1); // Adjust slerp factor for responsiveness
+                    }
+
+                    // --- Apply Damping to Velocity (optional drag) ---
+                    // data.velocity.multiplyScalar(0.99); // Slow down slightly over time
+
+                    // --- Boundary Check (optional: wrap around or bounce) ---
+                    const boundary = CONFIG.SPREAD_RANGE * 0.8;
+                    if (tempPosition.length() > boundary) {
+                      // Option 1: Wrap around
+                      // tempPosition.multiplyScalar(-1 * (boundary - 0.1) / boundary);
+                      // Option 2: Simple push back towards center
+                      data.velocity.addScaledVector(
+                        tempPosition,
+                        -0.01 * delta
+                      );
+                    }
+
+                    break;
+                  }
+                  case "panorama": {
+                    const {
+                      LAYER_ROTATION_SPEED,
+                      PARALLAX_FACTOR,
+                      LAYER_OSCILLATION,
+                    } = CONFIG.LAYOUT.PANORAMA;
+
+                    // --- 레이어별 진동 효과 ---
+                    const layerOscillation =
+                      Math.sin(elapsedTime * LAYER_OSCILLATION.FREQUENCY) *
+                      LAYER_OSCILLATION.AMPLITUDE *
+                      (data.layerIndex - 2); // 중앙 레이어 기준으로 진동 (5개 레이어에 맞게 조정)
+
+                    // --- 전체 파노라마 회전 ---
+                    if (LAYER_ROTATION_SPEED > 0) {
+                      const panoRotateQuat =
+                        new THREE.Quaternion().setFromAxisAngle(
+                          new THREE.Vector3(0, 1, 0),
+                          LAYER_ROTATION_SPEED * delta
+                        );
+                      tempPosition.applyQuaternion(panoRotateQuat);
+                      tempQuaternion.premultiply(panoRotateQuat);
+                    }
+
+                    // --- 패럴랙스 효과 ---
+                    if (PARALLAX_FACTOR > 0 && controls) {
+                      const cameraAngleY = controls.getAzimuthalAngle();
+                      const numLayers = CONFIG.LAYOUT.PANORAMA.NUM_LAYERS;
+                      const centerLayerIndex = (numLayers - 1) / 2;
+                      const layerOffset = data.layerIndex - centerLayerIndex;
+
+                      // 더 강한 패럴랙스 효과
+                      const parallaxOffset =
+                        -cameraAngleY * PARALLAX_FACTOR * layerOffset * 4;
+                      tempPosition.x += parallaxOffset * delta;
+
+                      // 레이어별 Z축 진동 추가
+                      tempPosition.z += layerOscillation * delta;
+                    }
+
+                    // --- 아이템 방향 조정 ---
+                    tempObject.position.copy(tempPosition);
+                    const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
+                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
+                      // 위치가 거의 동일한 경우 기본 방향 설정
+                      tempObject.quaternion.identity();
+                    } else {
+                      tempObject.lookAt(lookAtPoint);
+                    }
+                    tempQuaternion.copy(tempObject.quaternion);
+
+                    // --- 레이어별 회전 속도 차이 ---
+                    const layerSpeedFactor = 1 + (data.layerIndex - 2) * 0.15; // 속도 차이를 더 크게 조정
+                    const layerRotateQuat =
+                      new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0),
+                        LAYER_ROTATION_SPEED * delta * layerSpeedFactor
+                      );
+                    tempQuaternion.premultiply(layerRotateQuat);
+
+                    break;
+                  }
+                  case "random":
+                  default: {
+                    // Existing random float and rotation animation
+                    const { FLOAT_AMPLITUDE, FLOAT_SPEED } =
+                      CONFIG.LAYOUT.RANDOM;
+                    const floatOffset =
+                      Math.sin(elapsedTime * FLOAT_SPEED + i * 0.5) *
+                      FLOAT_AMPLITUDE; // Unique offset per item
+                    tempPosition.y += floatOffset * delta * 5; // Apply float smoothly
+
+                    // Apply random rotation based on initial random speed
+                    // Note: InstanceData needs rotationSpeed property for this
+                    // if (data.rotationSpeed) { // Check if rotationSpeed exists
+                    //     const deltaQuatX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), data.rotationSpeed.x * delta);
+                    //     const deltaQuatY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), data.rotationSpeed.y * delta);
+                    //     const deltaQuatZ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), data.rotationSpeed.z * delta);
+                    //     tempQuaternion.premultiply(deltaQuatX).premultiply(deltaQuatY).premultiply(deltaQuatZ);
+                    // }
+                    break;
+                  }
+                } // End layout switch
+
+                // --- Compose Final Matrix & Apply ---
+                // The hover scale was applied earlier
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+                data.visibleMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
+                data.raycastMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                ); // Keep raycast mesh synced
+                matrixNeedsUpdate = true; // Mark for update
+              } catch (error) {
+                console.error(
+                  `Error animating instance ${i} in layout ${currentLayout}:`,
+                  error
+                );
+                // Optionally disable animation for this instance if errors persist
+              }
+            }
+          }); // End instance loop (for idle animations)
+        } // End 'isTransitioning' block
+
+        // --- Global Updates ---
+        // Update Instanced Mesh Matrices if needed
+        if (matrixNeedsUpdate) {
+          instancedMeshes.forEach((mesh) => {
+            if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
+            // Also update color buffer if hover effects changed it
+            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+          });
+          raycastMeshes.forEach((mesh) => {
+            if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
+          });
+        }
+
+        // Animate Particle System
+        if (particleSystem) {
+          particleSystem.rotation.y += delta * 0.005;
+          particleSystem.rotation.x += delta * 0.002;
+        }
+
+        // Animate Point Lights
+        pointLights.forEach((light) => {
+          light.userData.angle += light.userData.speed * delta * 0.5;
+          const radiusFactor =
+            1 +
+            Math.sin(elapsedTime * 0.15 + light.userData.angle * 0.25) * 0.05;
+          const currentRadius = light.userData.radius * radiusFactor;
+          const x = Math.cos(light.userData.angle) * currentRadius;
+          const y =
+            Math.sin(elapsedTime * light.userData.speed * 0.25) * 3 +
+            light.userData.yOffset;
+          const z = Math.sin(light.userData.angle) * currentRadius;
+          light.position.set(x, y, z);
+        });
+
+        // Animate Background Lights (Intensity Pulse)
+        backgroundLight.intensity = 2.5 + Math.sin(elapsedTime * 0.3) * 0.8;
+        backLight.intensity = 1.5 + Math.sin(elapsedTime * 0.2) * 0.5;
+
+        // Update OrbitControls (Handles damping)
+        if (controls) controls.update(); // Pass delta if needed by specific controls features
+
+        // Render the Scene
+        if (renderer && scene && camera) renderer.render(scene, camera);
+      } // --- End animate() ---
+
+      // --- Helper Functions ---
+      // function easeInOutCubic(x) {
+      //   // Cubic easing function for smooth transitions
+      //   return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+      // }
+    </script>
+  </body>
+</html>
