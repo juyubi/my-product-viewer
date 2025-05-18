@@ -44,7 +44,7 @@ const CONFIG = {
       SELF_ROTATION_SPEED: 0.05, // Speed items spin (0.03에서 0.05로 증가)
     },
     GRID: {
-      COLUMNS: 14,
+      COLUMNS: 13,
       SPACING: 4,
       POSITION_JITTER: 0.4,
       ROTATION_JITTER: 0.15,
