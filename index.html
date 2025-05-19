@@ -42,15 +42,23 @@
           </div>
         </div>
 
-        <div id="selectedItemPanel">
-          <img id="selectedItemImage" src="" alt="Selected product image" />
-          <button id="visitSiteButton" data-url="">Materialize</button>
+        <div id="selectedItemPanel" style="display: block; padding-top: 5px">
+          <img
+            id="selectedItemImage"
+            src=""
+            alt="Selected product image"
+            style="display: none"
+          />
+          <button id="visitSiteButton" data-url="https://mayi2d.shop">
+            Materialize
+          </button>
         </div>
       </div>
       <button id="toggleControlsButton">☰</button>
     </div>
 
-    <div id="loader">Loading... 0%</div>
+    <div class="loading-overlay"></div>
+    <div id="loader">Magic Space Shop 0%</div>
 
     <script type="importmap">
       {
@@ -559,7 +567,7 @@
         if (loaderElement) {
           const percentage =
             total > 0 ? Math.round((loaded / total) * 100) : 100;
-          loaderElement.textContent = `Loading Assets... ${percentage}%`;
+          loaderElement.textContent = `Magic Space Shop ${percentage}%`;
         }
       }
 
@@ -571,6 +579,7 @@
           loaderElement.style.display !== "none"
         ) {
           loaderElement.style.display = "none"; // Hide loader
+          document.querySelector(".loading-overlay").style.display = "none"; // Hide overlay
           console.log("Asset loading complete, setup finished.");
 
           // Manage initial controls visibility based on screen size
@@ -874,11 +883,16 @@
           if (data) {
             selectedItemImage.src = data.imageUrl;
             selectedItemImage.alt = "Selected product";
+            selectedItemImage.style.display = "block";
             visitSiteButton.setAttribute("data-url", data.purchaseUrl);
-            selectedItemPanel.style.display = "block";
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
           }
+        } else {
+          // 이미지가 선택되지 않았을 때
+          selectedItemImage.style.display = "none";
+          visitSiteButton.setAttribute("data-url", "https://mayi2d.shop");
+          visitSiteButton.disabled = false;
         }
       }
 
