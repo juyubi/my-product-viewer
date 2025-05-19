@@ -27,6 +27,10 @@ canvas {
   pointer-events: none;
   user-select: none;
   letter-spacing: 1px;
+  white-space: nowrap;
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
 }
 
 .loading-overlay {
@@ -141,6 +145,10 @@ canvas {
   #layoutControls > div {
     gap: 8px;
   }
+  #loader {
+    font-size: 1.2em;
+    padding: 0 15px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -155,6 +163,10 @@ canvas {
   .layout-button {
     font-size: 0.75em;
     min-width: 50px;
+  }
+  #loader {
+    font-size: 1em;
+    padding: 0 10px;
   }
 }
 
