@@ -18,20 +18,37 @@
           id="logoImage"
           src="https://i.imgur.com/fgJ3rAV.png"
           alt="May I 2D Logo"
+          style="
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 80%;
+          "
         />
 
-        <div>
-          <input type="color" id="bgColorPicker" value="#000000" />
+        <div id="colorControls" style="margin-top: 15px; margin-bottom: 15px">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <button
+              class="color-button"
+              data-color="#000000"
+              title="검정색 배경"
+            >
+              ⍢⍡⍢⍡⍢
+            </button>
+            <button
+              class="color-button"
+              data-color="#f0f0f0"
+              title="밝은 회색 배경"
+            >
+              ⌾⍥⌾⍥⌾
+            </button>
+          </div>
         </div>
 
-        <div
-          id="layoutControls"
-          style="
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-          "
-        >
+        <div id="layoutControls" style="margin-top: 15px; margin-bottom: 15px">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
             <button class="layout-button" data-layout="sphere" title="Sphere">
               Sphere
@@ -108,7 +125,6 @@
       let targetPositions = []; // Array of { x, y, z, quaternion, [optional layout specific data] }
 
       // DOM Elements
-      const bgColorPicker = document.getElementById("bgColorPicker");
       const controlsElement = document.getElementById("controls");
       const controlsContainer = document.getElementById("controlsContainer");
       const toggleControlsButton = document.getElementById(
@@ -202,8 +218,8 @@
             ? CONFIG.CAMERA.MOBILE.MIN_DISTANCE
             : CONFIG.CAMERA.DESKTOP.MIN_DISTANCE;
           controls.maxDistance = isMobile
-            ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE
-            : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE;
+            ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE * 0.4
+            : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE * 0.4;
           controls.enableZoom = true;
           controls.enablePan = !isMobile; // Disable panning on mobile for better touch rotation
 
@@ -317,6 +333,11 @@
             .forEach((btn) => btn.classList.remove("active"));
           document
             .querySelector(`.layout-button[data-layout="${currentLayout}"]`)
+            ?.classList.add("active");
+
+          // Set initial active color button
+          document
+            .querySelector('.color-button[data-color="#000000"]')
             ?.classList.add("active");
 
           // 초기 레이아웃 적용 시 애니메이션 없이 즉시 적용
@@ -628,6 +649,30 @@
           }
         });
 
+        // 색상 버튼 이벤트
+        document.querySelectorAll(".color-button").forEach((button) => {
+          if (CONFIG.isMobile) {
+            button.addEventListener("touchstart", (e) => {
+              e.preventDefault();
+              const color = button.getAttribute("data-color");
+              changeBackgroundColor(color);
+              document.querySelectorAll(".color-button").forEach((btn) => {
+                btn.classList.remove("active");
+              });
+              button.classList.add("active");
+            });
+          } else {
+            button.addEventListener("click", () => {
+              const color = button.getAttribute("data-color");
+              changeBackgroundColor(color);
+              document.querySelectorAll(".color-button").forEach((btn) => {
+                btn.classList.remove("active");
+              });
+              button.classList.add("active");
+            });
+          }
+        });
+
         // 메뉴 토글 버튼 이벤트
         if (CONFIG.isMobile) {
           toggleControlsButton.addEventListener("touchstart", (e) => {
@@ -668,7 +713,6 @@
           document.addEventListener("pointerdown", onPointerDown);
         }
 
-        bgColorPicker.addEventListener("input", onBgColorChange);
         visitSiteButton.addEventListener("click", onVisitSiteClick);
       }
 
@@ -688,8 +732,8 @@
           ? CONFIG.CAMERA.MOBILE.MIN_DISTANCE
           : CONFIG.CAMERA.DESKTOP.MIN_DISTANCE;
         controls.maxDistance = isMobile
-          ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE
-          : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE;
+          ? CONFIG.CAMERA.MOBILE.MAX_DISTANCE * 0.7
+          : CONFIG.CAMERA.DESKTOP.MAX_DISTANCE * 0.7;
         controls.enablePan = !isMobile; // Disable pan on mobile
       }
 
@@ -717,16 +761,6 @@
 
         // Perform intersection check and handle selection if an item is clicked
         handleIntersections(true); // Pass true to indicate a selection attempt
-      }
-
-      function onBgColorChange(event) {
-        const newColor = event.target.value;
-        document.body.style.backgroundColor = newColor; // Update body background
-        const threeColor = new THREE.Color(newColor);
-        if (scene.fog) {
-          scene.fog.color.set(threeColor); // Update fog color
-        }
-        renderer.setClearColor(threeColor); // Update renderer clear color
       }
 
       function onVisitSiteClick() {
@@ -888,67 +922,30 @@
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
           }
-        } else {
-          // 이미지가 선택되지 않았을 때
-          selectedItemImage.style.display = "none";
-          visitSiteButton.setAttribute("data-url", "https://mayi2d.shop");
-          visitSiteButton.disabled = false;
+        } else if (!isSelectionAttempt) {
+          // 이미지가 선택되지 않았을 때만 초기화
+          if (!selectedItemImage.src) {
+            selectedItemImage.style.display = "none";
+            visitSiteButton.setAttribute("data-url", "https://mayi2d.shop");
+            visitSiteButton.disabled = false;
+          }
         }
       }
 
-      // Function to apply layout positions instantly without animation
-      function applyInstantLayout(positions) {
-        if (!positions || positions.length !== instanceData.length) {
-          console.error("Cannot apply instant layout: Invalid positions data.");
-          return;
+      function changeBackgroundColor(color) {
+        document.body.style.backgroundColor = color;
+        const threeColor = new THREE.Color(color);
+        if (scene.fog) {
+          scene.fog.color.set(threeColor);
         }
-        let matrixNeedsUpdate = false;
-        instanceData.forEach((data, i) => {
-          if (
-            data &&
-            data.visibleMeshGroup &&
-            data.localInstanceId !== -1 &&
-            positions[i]
-          ) {
-            const target = positions[i];
-            tempPosition.set(target.x, target.y, target.z);
-            // Use target quaternion if available, otherwise keep current rotation
-            if (target.quaternion) {
-              tempQuaternion.copy(target.quaternion);
-            } else {
-              // Get current quaternion if not specified by layout
-              data.visibleMeshGroup.getMatrixAt(
-                data.localInstanceId,
-                tempMatrix
-              );
-              tempMatrix.decompose(
-                new THREE.Vector3(),
-                tempQuaternion,
-                tempScale
-              ); // Only need quaternion
-            }
-            tempScale.set(1, 1, 1); // Reset scale
+        renderer.setClearColor(threeColor);
 
-            tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
-            data.visibleMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
-            data.raycastMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
-            matrixNeedsUpdate = true;
-
-            // Store layout-specific data if needed (e.g., baseZ for wavegrid)
-            if (target.baseZ !== undefined) data.targetZ = target.baseZ;
-            if (target.layerIndex !== undefined)
-              data.layerIndex = target.layerIndex;
-          }
-        });
-
-        if (matrixNeedsUpdate) {
-          instancedMeshes.forEach((mesh) => {
-            mesh.instanceMatrix.needsUpdate = true;
-          });
-          raycastMeshes.forEach((mesh) => {
-            mesh.instanceMatrix.needsUpdate = true;
-          });
-          console.log(`Applied initial layout: ${currentLayout}`);
+        // 파티클 색상 변경
+        if (particleSystem) {
+          particleSystem.material.color.set(
+            color === "#ffffff" ? "#000000" : "#ffffff"
+          );
+          particleSystem.material.needsUpdate = true;
         }
       }
 
@@ -1235,6 +1232,62 @@
         } // End switch
 
         return positions;
+      }
+
+      // Function to apply layout positions instantly without animation
+      function applyInstantLayout(positions) {
+        if (!positions || positions.length !== instanceData.length) {
+          console.error("Cannot apply instant layout: Invalid positions data.");
+          return;
+        }
+        let matrixNeedsUpdate = false;
+        instanceData.forEach((data, i) => {
+          if (
+            data &&
+            data.visibleMeshGroup &&
+            data.localInstanceId !== -1 &&
+            positions[i]
+          ) {
+            const target = positions[i];
+            tempPosition.set(target.x, target.y, target.z);
+            // Use target quaternion if available, otherwise keep current rotation
+            if (target.quaternion) {
+              tempQuaternion.copy(target.quaternion);
+            } else {
+              // Get current quaternion if not specified by layout
+              data.visibleMeshGroup.getMatrixAt(
+                data.localInstanceId,
+                tempMatrix
+              );
+              tempMatrix.decompose(
+                new THREE.Vector3(),
+                tempQuaternion,
+                tempScale
+              ); // Only need quaternion
+            }
+            tempScale.set(1, 1, 1); // Reset scale
+
+            tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+            data.visibleMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            data.raycastMeshGroup.setMatrixAt(data.localInstanceId, tempMatrix);
+            matrixNeedsUpdate = true;
+
+            // Store layout-specific data if needed (e.g., baseZ for wavegrid)
+            if (target.baseZ !== undefined) data.targetZ = target.baseZ;
+            if (target.layerIndex !== undefined)
+              data.layerIndex = target.layerIndex;
+          }
+        });
+
+        if (matrixNeedsUpdate) {
+          instancedMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+          raycastMeshes.forEach((mesh) => {
+            mesh.instanceMatrix.needsUpdate = true;
+          });
+          console.log(`Applied initial layout: ${currentLayout}`);
+        }
       }
 
       // --- Main Animation Loop ---

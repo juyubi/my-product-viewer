@@ -346,12 +346,13 @@ canvas {
     rgba(0, 220, 220, 0.6),
     rgba(0, 180, 255, 0.7)
   );
-  color: white;
-  font-weight: 700;
+  color: #000000;
+  font-weight: 500;
   border: 1px solid rgba(0, 200, 255, 0.8);
   box-shadow: 0 0 12px rgba(0, 200, 255, 0.4), 0 3px 8px rgba(0, 0, 0, 0.2);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  transform: none;
 }
 
 #layoutControls > div {
@@ -370,4 +371,74 @@ canvas {
     width: 150px; /* 모바일에서의 고정된 너비 */
     height: 150px; /* 모바일에서의 고정된 높이 */
   }
+}
+
+.color-button {
+  padding: 10px 16px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  flex-grow: 1;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.color-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  border-radius: inherit;
+  opacity: 0;
+  transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+}
+
+.color-button:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+}
+
+.color-button:hover::before {
+  transform: translate(-50%, -50%) scale(1.5);
+  opacity: 1;
+}
+
+.color-button:active {
+  transform: translateY(0px) scale(0.97);
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.color-button.active {
+  background: linear-gradient(
+    45deg,
+    rgba(0, 220, 220, 0.6),
+    rgba(0, 180, 255, 0.7)
+  );
+  color: #000000;
+  font-weight: 700;
+  border: 1px solid rgba(0, 200, 255, 0.8);
+  box-shadow: 0 0 12px rgba(0, 200, 255, 0.4), 0 3px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
