@@ -50,10 +50,36 @@
 
         <div id="layoutControls" style="margin-top: 15px; margin-bottom: 15px">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
-            <button class="layout-button" data-layout="sphere" title="Sphere">
+            <button
+              class="layout-button"
+              data-layout="grid"
+              title="My Room"
+              style="width: 100%; height: 40px"
+            >
+              my room
+            </button>
+            <button
+              class="color-button"
+              data-color="#7DCE82"
+              title="어두운 연두색 배경"
+              style="width: 100%; height: 40px"
+            >
+              ⍭⍡⌻
+            </button>
+            <button
+              class="layout-button"
+              data-layout="sphere"
+              title="Sphere"
+              style="width: 100%; height: 40px"
+            >
               Sphere
             </button>
-            <button class="layout-button" data-layout="flow" title="Flow">
+            <button
+              class="layout-button"
+              data-layout="flow"
+              title="Flow"
+              style="width: 100%; height: 40px"
+            >
               Free
             </button>
           </div>
@@ -118,7 +144,7 @@
       const hoverColor = new THREE.Color(1, 1, 0.6); // Yellowish tint on hover
       const normalColor = new THREE.Color(1, 1, 1); // Default color
       let isMobile = false;
-      let currentLayout = "sphere"; // Default layout을 sphere로 변경
+      let currentLayout = "grid"; // Default layout을 grid로 변경
       let transitionStartTime = 0;
       let isTransitioning = false;
       let startPositions = []; // Array of { x, y, z, quaternion }
@@ -310,8 +336,8 @@
           sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
           const clickPlaneScale = CONFIG.isMobile ? 2.0 : 1.5; // 모바일에서 더 큰 클릭 영역
           sharedRaycastGeometry = new THREE.PlaneGeometry(
-            2.5 * clickPlaneScale,
-            2.5 * clickPlaneScale
+            3.0 * clickPlaneScale, // 클릭 영역을 더 크게 설정
+            3.0 * clickPlaneScale
           );
           sharedRaycastMaterial = new THREE.MeshBasicMaterial({
             visible: false,
@@ -779,13 +805,13 @@
         raycaster.setFromCamera(pointer, camera);
 
         // 클릭 감지 설정 개선
-        raycaster.params.Line.threshold = 0.3;
-        raycaster.params.Points.threshold = 0.3;
+        raycaster.params.Line.threshold = 0.5; // 임계값 증가
+        raycaster.params.Points.threshold = 0.5;
 
         if (CONFIG.isMobile) {
           raycaster.params.Points.threshold = Math.max(
             CONFIG.TOUCH_TOLERANCE,
-            0.3
+            0.5
           );
         }
 
@@ -810,21 +836,8 @@
             if (originalIndex !== -1) {
               const data = instanceData[originalIndex];
               if (data && data.visibleMeshGroup) {
-                // 레이아웃별 클릭 감지 거리 조정
-                let maxDistance;
-                switch (currentLayout) {
-                  case "panorama":
-                    maxDistance = 400;
-                    break;
-                  case "sphere":
-                    maxDistance = 300;
-                    break;
-                  case "flow":
-                    maxDistance = 250;
-                    break;
-                  default:
-                    maxDistance = 200;
-                }
+                // 모든 레이아웃에 대해 동일한 클릭 감지 거리 적용
+                const maxDistance = 500; // 모든 레이아웃에 대해 동일한 거리 적용
 
                 if (intersect.distance < maxDistance) {
                   newIntersectedInfo = {
@@ -849,6 +862,7 @@
           if (oldData?.visibleMeshGroup && oldData.localInstanceId !== -1) {
             try {
               // Reset scale
+              /*
               INTERSECTED_INFO.meshGroup.getMatrixAt(
                 INTERSECTED_INFO.localInstanceId,
                 tempMatrix
@@ -861,13 +875,15 @@
                 tempMatrix
               );
               INTERSECTED_INFO.meshGroup.instanceMatrix.needsUpdate = true;
-
+              */
               // Reset color
+              /*
               INTERSECTED_INFO.meshGroup.setColorAt(
                 INTERSECTED_INFO.localInstanceId,
                 normalColor
               );
               INTERSECTED_INFO.meshGroup.instanceColor.needsUpdate = true;
+              */
             } catch (e) {
               console.error("Error resetting hover state:", e);
             }
@@ -884,6 +900,7 @@
           if (newData?.visibleMeshGroup && newData.localInstanceId !== -1) {
             try {
               // Apply hover scale
+              /*
               newIntersectedInfo.meshGroup.getMatrixAt(
                 newIntersectedInfo.localInstanceId,
                 tempMatrix
@@ -896,13 +913,15 @@
                 tempMatrix
               );
               newIntersectedInfo.meshGroup.instanceMatrix.needsUpdate = true;
-
+              */
               // Apply hover color
+              /*
               newIntersectedInfo.meshGroup.setColorAt(
                 newIntersectedInfo.localInstanceId,
                 hoverColor
               );
               newIntersectedInfo.meshGroup.instanceColor.needsUpdate = true;
+              */
             } catch (e) {
               console.error("Error applying hover state:", e);
             }
@@ -1001,9 +1020,7 @@
 
         switch (layoutType) {
           case "sphere": {
-            // Added block scope
-            const { RADIUS, SPREAD, ORBIT_SPEED, SELF_ROTATION_SPEED } =
-              CONFIG.LAYOUT.SPHERE;
+            const { RADIUS, SPREAD } = CONFIG.LAYOUT.SPHERE;
             const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // For Fibonacci sphere distribution
 
             for (let i = 0; i < totalInstances; i++) {
@@ -1021,25 +1038,25 @@
                 z * finalRadius
               );
 
-              // Calculate orientation to face outwards
               tempObject.position.copy(pos);
-              if (
-                tempObject.position.distanceTo(new THREE.Vector3(0, 0, 0)) <
-                0.001
-              ) {
-                // 위치가 거의 동일한 경우 기본 방향 설정
-                tempObject.quaternion.identity();
-                tempObject.rotation.y = Math.PI; // 기본적으로 뒤를 보도록 설정
+              let initialQuaternion = new THREE.Quaternion(); // 새 쿼터니언 객체 생성
+
+              if (tempObject.position.lengthSq() < 0.00001) {
+                // 원점 근처인지 확인
+                // 원점 또는 매우 가까운 경우, 기본 방향 설정 (예: 월드 -Z축을 바라보도록)
+                initialQuaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
               } else {
-                tempObject.lookAt(0, 0, 0); // Look at center
-                tempObject.rotation.y += Math.PI; // Turn around to face out
+                tempObject.lookAt(0, 0, 0); // 원점 바라보기
+                tempObject.rotation.y += Math.PI; // 바깥쪽을 향하도록 180도 회전
+                initialQuaternion.copy(tempObject.quaternion);
               }
+              initialQuaternion.normalize(); // 생성된 초기 쿼터니언 정규화
 
               positions.push({
                 x: pos.x,
                 y: pos.y,
                 z: pos.z,
-                quaternion: tempObject.quaternion.clone(),
+                quaternion: initialQuaternion, // 정규화된 쿼터니언 사용
               });
             }
             break;
