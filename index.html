@@ -329,17 +329,15 @@
           createParticles();
 
           // Shared Geometries & Materials
-          sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5);
-          const clickPlaneScale = CONFIG.isMobile ? 2.0 : 1.5; // 모바일에서 더 큰 클릭 영역
-          sharedRaycastGeometry = new THREE.PlaneGeometry(
-            3.0 * clickPlaneScale, // 클릭 영역을 더 크게 설정
-            3.0 * clickPlaneScale
-          );
+          sharedPlaneGeometry = new THREE.PlaneGeometry(2.5, 2.5); // 보이는 이미지 크기
+          sharedRaycastGeometry = new THREE.PlaneGeometry(4.0, 4.0); // 클릭 감지 영역 크기 조정 (8.0 -> 4.0)
           sharedRaycastMaterial = new THREE.MeshBasicMaterial({
-            visible: false,
+            visible: false, // 다시 안 보이도록 설정
+            // color: 0xff0000, // 색상 설정은 더 이상 필요 없음
             side: THREE.DoubleSide,
             transparent: true,
-            opacity: 0.1,
+            opacity: 0, // 투명도를 0으로 설정
+            depthTest: false, // 다른 객체에 의해 가려져도 감지 시도
           });
 
           // Setup Instanced Meshes (Loads textures and creates instances)
@@ -548,8 +546,9 @@
                 sharedRaycastMaterial,
                 group.originalIndices.length
               );
-              raycastMeshGroup.visible = true; // raycastMeshGroup을 항상 활성화
-              raycastMeshGroup.frustumCulled = false; // 프러스텀 컬링 비활성화
+              raycastMeshGroup.visible = true; // raycastMeshGroup을 항상 활성화 (디버깅 중이므로)
+              raycastMeshGroup.frustumCulled = false; // 프러스텀 컬링 비활성화 (이미 적용됨)
+              raycastMeshGroup.renderOrder = 1; // visibleMeshGroup보다 높은 renderOrder 부여
               scene.add(raycastMeshGroup);
               raycastMeshes.push(raycastMeshGroup);
 
@@ -798,7 +797,22 @@
       }
 
       function handleIntersections(isSelectionAttempt) {
+        // Ensure camera matrices are up to date before raycasting
+        camera.updateMatrixWorld();
+        camera.updateProjectionMatrix();
+
         raycaster.setFromCamera(pointer, camera);
+
+        if (isSelectionAttempt) {
+          console.log(
+            `[Debug Raycaster Pre-Check] raycaster.far: ${raycaster.far}, raycaster.layers.mask: ${raycaster.layers.mask}`
+          );
+          if (raycastMeshes.length > 0 && raycastMeshes[0]) {
+            console.log(
+              `[Debug Raycaster Pre-Check] raycastMeshes[0].layers.mask: ${raycastMeshes[0].layers.mask}`
+            );
+          }
+        }
 
         // 클릭 감지 설정 개선
         raycaster.params.Line.threshold = 0.5; // 임계값 증가
@@ -815,19 +829,39 @@
         const intersects = raycaster.intersectObjects(raycastMeshes, true);
         let newIntersectedInfo = null;
 
+        if (isSelectionAttempt) {
+          console.log(
+            `[Click Attempt] Raycaster.intersectObjects found ${intersects.length} intersections.`
+          );
+        }
+
         if (intersects.length > 0) {
           const intersect = intersects[0];
+          if (isSelectionAttempt) {
+            console.log("[Click Attempt] Closest intersect:", {
+              objectUUID: intersect.object.uuid,
+              instanceId: intersect.instanceId,
+              distance: intersect.distance,
+              point: intersect.point.toArray(),
+            });
+          }
+
           if (intersect.instanceId !== undefined) {
             const raycastMeshGroup = intersect.object;
             const localInstanceId = intersect.instanceId;
 
-            // 해당 raycastMeshGroup에 속한 모든 인스턴스 데이터 검색
             const originalIndex = instanceData.findIndex(
               (data) =>
                 data &&
                 data.raycastMeshGroup === raycastMeshGroup &&
                 data.localInstanceId === localInstanceId
             );
+
+            if (isSelectionAttempt) {
+              console.log(
+                `[Click Attempt] Found originalIndex: ${originalIndex} for instanceId ${localInstanceId}`
+              );
+            }
 
             if (originalIndex !== -1) {
               const data = instanceData[originalIndex];
@@ -842,10 +876,61 @@
                     localInstanceId,
                     data: data,
                   };
+                } else {
+                  // 로깅 추가: 교차는 했지만 maxDistance 때문에 무시된 경우
+                  if (isSelectionAttempt) {
+                    // 클릭 시도일 때만 로그 기록
+                    console.log(
+                      `Intersection ignored for instance ${originalIndex} due to distance: ${intersect.distance.toFixed(
+                        2
+                      )} (max: ${maxDistance})`
+                    );
+                  }
                 }
               }
             }
           }
+        } else if (isSelectionAttempt) {
+          console.log("[Click Attempt] No intersections found.");
+          // 상세 디버깅 로그 추가
+          console.log(`[Debug] raycastMeshes.length: ${raycastMeshes.length}`);
+          if (raycastMeshes.length > 0 && raycastMeshes[0]) {
+            // Ensure raycastMeshes[0] exists
+            const firstRaycastMesh = raycastMeshes[0];
+            const instanceMatrix = new THREE.Matrix4();
+            if (firstRaycastMesh.count > 0) {
+              // Ensure there's at least one instance to get matrix from
+              firstRaycastMesh.getMatrixAt(0, instanceMatrix); // 첫 번째 인스턴스의 로컬 매트릭스
+            }
+            console.log("[Debug] First raycastMesh details:", {
+              uuid: firstRaycastMesh.uuid,
+              name: firstRaycastMesh.name || "N/A",
+              visible: firstRaycastMesh.visible,
+              materialUUID: firstRaycastMesh.material
+                ? firstRaycastMesh.material.uuid
+                : "N/A",
+              geometryUUID: firstRaycastMesh.geometry
+                ? firstRaycastMesh.geometry.uuid
+                : "N/A",
+              instanceCount: firstRaycastMesh.count,
+              matrixWorldElements: firstRaycastMesh.matrixWorld
+                ? firstRaycastMesh.matrixWorld.elements.join(", ")
+                : "N/A",
+              instance0LocalMatrixElements:
+                firstRaycastMesh.count > 0
+                  ? instanceMatrix.elements.join(", ")
+                  : "N/A",
+            });
+          } else {
+            console.log(
+              "[Debug] raycastMeshes array is empty or first element is null."
+            );
+          }
+          console.log("[Debug] Camera state:", {
+            position: camera.position.toArray(),
+            quaternion: camera.quaternion.toArray(),
+            pointerNDC: pointer.toArray(),
+          });
         }
 
         // 이전 hover 상태 제거
@@ -1017,43 +1102,51 @@
         switch (layoutType) {
           case "sphere": {
             const { RADIUS, SPREAD } = CONFIG.LAYOUT.SPHERE;
-            const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // For Fibonacci sphere distribution
+            const goldenAngle = Math.PI * (3 - Math.sqrt(5));
 
             for (let i = 0; i < totalInstances; i++) {
-              const y = 1 - (i / (totalInstances - 1)) * 2; // -1 to 1
-              const radiusAtY = Math.sqrt(1 - y * y);
+              const y_calc = 1 - (i / (totalInstances - 1)) * 2;
+              const radiusAtY = Math.sqrt(1 - y_calc * y_calc);
               const theta = goldenAngle * i;
-              const x = Math.cos(theta) * radiusAtY;
-              const z = Math.sin(theta) * radiusAtY;
+              const x_calc = Math.cos(theta) * radiusAtY;
+              const z_calc = Math.sin(theta) * radiusAtY;
 
               const finalRadius =
                 RADIUS * (1 + (Math.random() - 0.5) * SPREAD * 2);
               const pos = new THREE.Vector3(
-                x * finalRadius,
-                y * finalRadius,
-                z * finalRadius
+                x_calc * finalRadius,
+                y_calc * finalRadius,
+                z_calc * finalRadius
               );
 
               tempObject.position.copy(pos);
-              let initialQuaternion = new THREE.Quaternion(); // 새 쿼터니언 객체 생성
-
+              let initialQuaternion = new THREE.Quaternion();
               if (tempObject.position.lengthSq() < 0.00001) {
-                // 원점 근처인지 확인
-                // 원점 또는 매우 가까운 경우, 기본 방향 설정 (예: 월드 -Z축을 바라보도록)
                 initialQuaternion.setFromEuler(new THREE.Euler(0, Math.PI, 0));
               } else {
-                tempObject.lookAt(0, 0, 0); // 원점 바라보기
-                tempObject.rotation.y += Math.PI; // 바깥쪽을 향하도록 180도 회전
+                tempObject.lookAt(0, 0, 0);
+                tempObject.rotation.y += Math.PI;
                 initialQuaternion.copy(tempObject.quaternion);
               }
-              initialQuaternion.normalize(); // 생성된 초기 쿼터니언 정규화
+              initialQuaternion.normalize();
 
               positions.push({
                 x: pos.x,
                 y: pos.y,
                 z: pos.z,
-                quaternion: initialQuaternion, // 정규화된 쿼터니언 사용
+                quaternion: initialQuaternion,
+                targetSphereRadius: finalRadius, // Store target radius for this instance
               });
+              if (i === 0) {
+                // Log for the first instance
+                console.log(
+                  `[Debug CalcTargetPos Sphere Inst 0] Calculated finalRadius: ${finalRadius.toFixed(
+                    3
+                  )} (CONFIG.RADIUS: ${CONFIG.LAYOUT.SPHERE.RADIUS}, SPREAD: ${
+                    CONFIG.LAYOUT.SPHERE.SPREAD
+                  })`
+                );
+              }
             }
             break;
           } // End sphere case
@@ -1253,15 +1346,32 @@
             if (target.baseZ !== undefined) data.targetZ = target.baseZ;
             if (target.layerIndex !== undefined)
               data.layerIndex = target.layerIndex;
+            if (target.targetSphereRadius !== undefined) {
+              data.targetSphereRadius = target.targetSphereRadius; // Save targetSphereRadius
+              if (i === 0) {
+                console.log(
+                  `[Debug ApplyInstantLayout Inst 0] Setting targetSphereRadius: ${data.targetSphereRadius.toFixed(
+                    3
+                  )} from target`
+                );
+              }
+            }
           }
         });
 
         if (matrixNeedsUpdate) {
           instancedMeshes.forEach((mesh) => {
-            mesh.instanceMatrix.needsUpdate = true;
+            if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
+            mesh.matrixWorldNeedsUpdate = true; // Force update of world matrix
+            if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
           });
           raycastMeshes.forEach((mesh) => {
-            mesh.instanceMatrix.needsUpdate = true;
+            if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
+            mesh.matrixWorldNeedsUpdate = true; // Force update of world matrix for raycast meshes
+            if (mesh.geometry) {
+              // Ensure geometry exists before computing bounding sphere
+              mesh.computeBoundingSphere(); // 명시적으로 경계 구 업데이트
+            }
           });
           console.log(`Applied initial layout: ${currentLayout}`);
         }
@@ -1347,6 +1457,7 @@
                 tempScale.set(1, 1, 1);
 
                 // Compose and set the matrix
+                tempQuaternion.normalize(); // Ensure quaternion is always valid before composing matrix
                 tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
                 data.visibleMeshGroup.setMatrixAt(
                   data.localInstanceId,
@@ -1365,6 +1476,17 @@
                   if (target.baseZ !== undefined) data.targetZ = target.baseZ;
                   if (target.layerIndex !== undefined)
                     data.layerIndex = target.layerIndex;
+                  if (target.targetSphereRadius !== undefined) {
+                    data.targetSphereRadius = target.targetSphereRadius; // Save for sphere layout
+                    if (i === 0 && targetPositions === positions) {
+                      // Check if this is the initial calculation pass
+                      console.log(
+                        `[Debug Transition Start Inst 0] Setting targetSphereRadius: ${data.targetSphereRadius.toFixed(
+                          3
+                        )} from target (Layout: ${layoutType})`
+                      );
+                    }
+                  }
                   // Reset flow velocity at start of transition away from flow
                   if (currentLayout !== "flow") {
                     data.velocity?.set(0, 0, 0);
@@ -1472,80 +1594,88 @@
                 const isHovered =
                   INTERSECTED_INFO && INTERSECTED_INFO.originalIndex === i;
 
-                // Apply hover scale *before* layout animation modifies scale
-                if (isHovered && !tempScale.equals(hoverScaleVec)) {
-                  tempScale.copy(hoverScaleVec); // Apply hover scale immediately
-                } else if (!isHovered && !tempScale.equals(normalScaleVec)) {
-                  tempScale.copy(normalScaleVec); // Apply normal scale immediately
+                // Apply hover scale or ensure normal scale
+                if (isHovered) {
+                  tempScale.copy(hoverScaleVec);
+                } else {
+                  tempScale.copy(normalScaleVec); // Ensure normal scale if not hovered
                 }
 
                 // --- Layout Specific Animations ---
                 switch (currentLayout) {
                   case "sphere": {
-                    // CONFIG 객체의 값을 직접 사용
                     const ORBIT_SPEED = CONFIG.LAYOUT.SPHERE.ORBIT_SPEED;
                     const SELF_ROTATION_SPEED =
                       CONFIG.LAYOUT.SPHERE.SELF_ROTATION_SPEED;
 
-                    // Orbit around Y axis
+                    // tempPosition은 instanceData.forEach 루프 시작 시 현재 인스턴스의 행렬로부터 이미 분해되어 있음
                     const orbitQuat = new THREE.Quaternion().setFromAxisAngle(
                       new THREE.Vector3(0, 1, 0),
                       ORBIT_SPEED * delta
                     );
-                    tempPosition.applyQuaternion(orbitQuat);
+                    tempPosition.applyQuaternion(orbitQuat); // 현재 위치를 기준으로 공전
 
-                    // Re-orient to face outwards after orbiting
-                    tempObject.position.copy(tempPosition);
-                    tempObject.lookAt(0, 0, 0); // Look at center
-                    tempObject.rotation.y += Math.PI; // Turn around to face out
-                    const baseQuaternion = tempObject.quaternion.clone(); // 기본 방향 (바깥쪽)
-
-                    // Apply self-rotation (around local Y axis)
-                    const selfRotateQuat =
-                      new THREE.Quaternion().setFromAxisAngle(
-                        new THREE.Vector3(0, 1, 0),
-                        SELF_ROTATION_SPEED * delta
+                    // 객체가 목표 구 반지름 표면에 머무르도록 보장
+                    const radiusToUse =
+                      data.targetSphereRadius || CONFIG.LAYOUT.SPHERE.RADIUS;
+                    if (
+                      i === DEBUG_INDEX &&
+                      currentLayout === "sphere" &&
+                      shouldLog
+                    ) {
+                      console.log(
+                        `[Debug Sphere Inst ${DEBUG_INDEX}] Radius calc: data.targetSphereRadius=${
+                          data.targetSphereRadius
+                            ? data.targetSphereRadius.toFixed(3)
+                            : "undefined"
+                        }, CONFIG_RADIUS=${CONFIG.LAYOUT.SPHERE.RADIUS.toFixed(
+                          3
+                        )}, using radius=${radiusToUse.toFixed(3)}`
                       );
-
-                    // 수정된 Quaternion 적용 로직 유지
-                    tempQuaternion.copy(baseQuaternion);
-                    tempQuaternion.premultiply(selfRotateQuat);
-
-                    break;
-                  }
-                  case "spiral": {
-                    const { SPIRAL_STRUCT_ROT_SPEED, SPIRAL_SELF_ROT_SPEED } =
-                      CONFIG.ANIMATION;
-                    // Rotate the whole structure around Z axis
-                    if (SPIRAL_STRUCT_ROT_SPEED > 0) {
-                      const structRotateQuat =
-                        new THREE.Quaternion().setFromAxisAngle(
-                          new THREE.Vector3(0, 0, 1),
-                          SPIRAL_STRUCT_ROT_SPEED * delta
+                    }
+                    if (tempPosition.lengthSq() > 0.00001) {
+                      // normalize(0,0,0) 방지
+                      tempPosition.normalize().multiplyScalar(radiusToUse);
+                      if (
+                        i === DEBUG_INDEX &&
+                        currentLayout === "sphere" &&
+                        shouldLog
+                      ) {
+                        console.log(
+                          `[Debug Sphere Inst ${DEBUG_INDEX}] After normalize & scale: pos.length=${tempPosition
+                            .length()
+                            .toFixed(3)}, expected radius=${radiusToUse.toFixed(
+                            3
+                          )}`
                         );
-                      tempPosition.applyQuaternion(structRotateQuat);
+                      }
                     }
 
-                    // Re-orient to look at Z-axis after structure rotation
-                    const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
+                    // 방향 계산을 위해 tempObject 설정
                     tempObject.position.copy(tempPosition);
-                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
-                      // 위치가 거의 동일한 경우 기본 방향 설정
-                      tempObject.quaternion.identity();
-                    } else {
-                      tempObject.lookAt(lookAtPoint);
-                    }
-                    const baseQuaternion = tempObject.quaternion.clone();
+                    tempObject.up.set(0, 1, 0); // lookAt을 위해 up 벡터 명시적 설정
 
-                    // Apply self-rotation (tumbling around local Y)
+                    if (tempObject.position.lengthSq() > 0.0001) {
+                      // 원점에 매우 가까운 경우 방지
+                      tempObject.lookAt(0, 0, 0); // 월드 원점을 바라보도록 설정
+                      tempObject.rotateY(Math.PI); // 자신의 로컬 Y축 기준으로 180도 회전하여 바깥쪽을 향하도록 함
+                    } else {
+                      // 원점에 있을 경우 기본 방향 설정 (예: 월드 -Z축)
+                      tempObject.quaternion.setFromEuler(
+                        new THREE.Euler(0, Math.PI, 0)
+                      );
+                    }
+                    const baseQuaternion = tempObject.quaternion.clone(); // 바깥쪽을 향하는 기본 방향
+
+                    // 자신의 로컬 Y축 기준 자전(스핀) 적용
                     const selfRotateQuat =
                       new THREE.Quaternion().setFromAxisAngle(
-                        new THREE.Vector3(0, 1, 0),
-                        SPIRAL_SELF_ROT_SPEED * delta
+                        new THREE.Vector3(0, 1, 0), // 로컬 Y축 기준 회전
+                        SELF_ROTATION_SPEED * delta
                       );
                     tempQuaternion
                       .copy(baseQuaternion)
-                      .premultiply(selfRotateQuat); // Apply base orientation, then self-rotation
+                      .multiply(selfRotateQuat); // 기본 방향에 자전 적용
 
                     break;
                   }
@@ -1560,8 +1690,6 @@
                     const noiseTime = elapsedTime * SPEED;
 
                     // --- Calculate Flow Field Force using Noise ---
-                    // Placeholder: Use simplex3 noise function here
-                    // Ensure you have imported/defined 'noise.simplex3'
                     const noiseValX =
                       noise.simplex3(
                         tempPosition.x * NOISE_SCALE,
@@ -1581,44 +1709,46 @@
                         noiseTime
                       ) || 0;
 
-                    // Create force vector from noise, normalize, and scale
                     const forceVector = new THREE.Vector3(
                       noiseValX,
                       noiseValY,
                       noiseValZ
                     );
-                    forceVector.normalize().multiplyScalar(FORCE * delta); // Apply force over time
-
-                    // --- Update Velocity & Position ---
+                    if (forceVector.lengthSq() > 0.00001) {
+                      // Check if forceVector is not a zero vector
+                      forceVector.normalize().multiplyScalar(FORCE * delta);
+                    } else {
+                      forceVector.set(0, 0, 0); // Explicitly set to zero if it was a zero vector
+                    }
                     data.velocity.add(forceVector);
-                    // Clamp velocity to max speed
                     if (data.velocity.length() > MAX_SPEED) {
                       data.velocity.normalize().multiplyScalar(MAX_SPEED);
                     }
-                    tempPosition.addScaledVector(data.velocity, delta); // Update position based on velocity
+                    tempPosition.addScaledVector(data.velocity, delta);
 
                     // --- Calculate Rotation based on Velocity Direction ---
-                    if (data.velocity.lengthSq() > 0.001) {
-                      // Only rotate if moving significantly
-                      // Create a target quaternion that aligns Z-axis with velocity
+                    if (data.velocity.lengthSq() > 0.0001) {
+                      // Threshold for significant movement
                       tempObject.position.copy(tempPosition);
-                      const lookAtPoint = tempPosition
+                      const lookAtPointFlow = tempPosition
                         .clone()
                         .add(data.velocity);
-                      if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
-                        // 위치가 거의 동일한 경우 기본 방향 설정
-                        tempObject.quaternion.identity();
+
+                      // Check distance to prevent lookAt issues if lookAtPoint is too close
+                      if (
+                        tempObject.position.distanceToSquared(lookAtPointFlow) >
+                        0.0001
+                      ) {
+                        tempObject.lookAt(lookAtPointFlow); // Look in direction of movement
+                        const targetFlowQuat = tempObject.quaternion;
+                        tempQuaternion.slerp(targetFlowQuat, 0.1);
                       } else {
-                        tempObject.lookAt(lookAtPoint); // Look in direction of movement
+                        // Velocity is very small, maintain current rotation or slowly revert to a default
+                        // tempQuaternion.slerp(new THREE.Quaternion(), 0.01); // Example: Slerp to identity
                       }
-                      const targetFlowQuat = tempObject.quaternion;
-
-                      // Slerp towards the target rotation for smoother turning
-                      tempQuaternion.slerp(targetFlowQuat, 0.1); // Adjust slerp factor for responsiveness
                     }
-
                     // --- Apply Damping to Velocity (optional drag) ---
-                    // data.velocity.multiplyScalar(0.99); // Slow down slightly over time
+                    // data.velocity.multiplyScalar(0.99);
 
                     // --- Boundary Check (optional: wrap around or bounce) ---
                     const boundary = CONFIG.SPREAD_RANGE * 0.8;
@@ -1642,10 +1772,10 @@
                     } = CONFIG.LAYOUT.PANORAMA;
 
                     // --- 레이어별 진동 효과 ---
-                    const layerOscillation =
+                    const layerOscillationVal = // Renamed to avoid conflict
                       Math.sin(elapsedTime * LAYER_OSCILLATION.FREQUENCY) *
                       LAYER_OSCILLATION.AMPLITUDE *
-                      (data.layerIndex - 2); // 중앙 레이어 기준으로 진동 (5개 레이어에 맞게 조정)
+                      (data.layerIndex - 2);
 
                     // --- 전체 파노라마 회전 ---
                     if (LAYER_ROTATION_SPEED > 0) {
@@ -1655,7 +1785,7 @@
                           LAYER_ROTATION_SPEED * delta
                         );
                       tempPosition.applyQuaternion(panoRotateQuat);
-                      tempQuaternion.premultiply(panoRotateQuat);
+                      // tempQuaternion.premultiply(panoRotateQuat); // Orientation is set by lookAt
                     }
 
                     // --- 패럴랙스 효과 ---
@@ -1663,36 +1793,48 @@
                       const cameraAngleY = controls.getAzimuthalAngle();
                       const numLayers = CONFIG.LAYOUT.PANORAMA.NUM_LAYERS;
                       const centerLayerIndex = (numLayers - 1) / 2;
-                      const layerOffset = data.layerIndex - centerLayerIndex;
+                      const layerOffsetFactor =
+                        data.layerIndex - centerLayerIndex; // Renamed
 
-                      // 더 강한 패럴랙스 효과
                       const parallaxOffset =
-                        -cameraAngleY * PARALLAX_FACTOR * layerOffset * 4;
+                        -cameraAngleY * PARALLAX_FACTOR * layerOffsetFactor * 4;
                       tempPosition.x += parallaxOffset * delta;
-
-                      // 레이어별 Z축 진동 추가
-                      tempPosition.z += layerOscillation * delta;
+                      tempPosition.z += layerOscillationVal * delta; // Apply oscillation here
                     }
 
                     // --- 아이템 방향 조정 ---
                     tempObject.position.copy(tempPosition);
-                    const lookAtPoint = new THREE.Vector3(0, 0, tempPosition.z);
-                    if (tempObject.position.distanceTo(lookAtPoint) < 0.001) {
-                      // 위치가 거의 동일한 경우 기본 방향 설정
-                      tempObject.quaternion.identity();
+                    const lookAtPointPanorama = new THREE.Vector3(
+                      0,
+                      0,
+                      tempPosition.z
+                    );
+                    if (
+                      tempObject.position.distanceToSquared(
+                        lookAtPointPanorama
+                      ) > 0.0001
+                    ) {
+                      tempObject.lookAt(lookAtPointPanorama);
                     } else {
-                      tempObject.lookAt(lookAtPoint);
+                      // If too close, set a default orientation (e.g., face camera or +Z)
+                      tempObject.quaternion.setFromEuler(
+                        new THREE.Euler(0, 0, 0)
+                      ); // Face +Z
                     }
-                    tempQuaternion.copy(tempObject.quaternion);
+                    // tempQuaternion.copy(tempObject.quaternion); // Will be set after layer rotation
 
                     // --- 레이어별 회전 속도 차이 ---
-                    const layerSpeedFactor = 1 + (data.layerIndex - 2) * 0.15; // 속도 차이를 더 크게 조정
+                    const layerSpeedFactor = 1 + (data.layerIndex - 2) * 0.15;
                     const layerRotateQuat =
                       new THREE.Quaternion().setFromAxisAngle(
                         new THREE.Vector3(0, 1, 0),
                         LAYER_ROTATION_SPEED * delta * layerSpeedFactor
                       );
-                    tempQuaternion.premultiply(layerRotateQuat);
+
+                    // Apply base orientation from lookAt, then apply layer-specific rotation
+                    tempQuaternion
+                      .copy(tempObject.quaternion)
+                      .multiply(layerRotateQuat);
 
                     break;
                   }
@@ -1720,6 +1862,7 @@
 
                 // --- Compose Final Matrix & Apply ---
                 // The hover scale was applied earlier
+                tempQuaternion.normalize(); // Ensure quaternion is always valid before composing matrix
                 tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
                 data.visibleMeshGroup.setMatrixAt(
                   data.localInstanceId,
@@ -1730,6 +1873,88 @@
                   tempMatrix
                 ); // Keep raycast mesh synced
                 matrixNeedsUpdate = true; // Mark for update
+
+                // Log world scale for instance 0 in sphere layout after matrix update
+                if (
+                  i === DEBUG_INDEX &&
+                  currentLayout === "sphere" &&
+                  shouldLog
+                ) {
+                  const worldMatrix = new THREE.Matrix4();
+                  // const_UNUSED = data.raycastMeshGroup.getMatrixAt(data.localInstanceId, worldMatrix); // Get local matrix (Error: const_UNUSED is not defined)
+                  data.raycastMeshGroup.getMatrixAt(
+                    data.localInstanceId,
+                    worldMatrix
+                  ); // Corrected: Get local matrix
+                  worldMatrix.premultiply(data.raycastMeshGroup.matrixWorld); // Apply parent world matrix to get actual world matrix
+
+                  const worldPosition = new THREE.Vector3();
+                  const worldQuaternion = new THREE.Quaternion();
+                  const worldScale = new THREE.Vector3();
+                  worldMatrix.decompose(
+                    worldPosition,
+                    worldQuaternion,
+                    worldScale
+                  );
+                  console.log(
+                    `[Debug Sphere Inst ${DEBUG_INDEX}] World Scale: ${worldScale
+                      .toArray()
+                      .map((n) => n.toFixed(3))}`
+                  );
+                }
+
+                // Log inputs and output of matrix composition for instance 0 in sphere layout
+                if (i === 0 && currentLayout === "sphere" && shouldLog) {
+                  console.log(
+                    `[Debug Sphere Inst 0] Pre-compose: pos: ${tempPosition
+                      .toArray()
+                      .map((n) => n.toFixed(3))}, quat: ${tempQuaternion
+                      .toArray()
+                      .map((n) => n.toFixed(3))}, scale: ${tempScale
+                      .toArray()
+                      .map((n) => n.toFixed(3))}`
+                  );
+                }
+
+                if (i === 0 && currentLayout === "sphere" && shouldLog) {
+                  console.log(
+                    `[Debug Sphere Inst 0] Post-compose tempMatrix: ${tempMatrix.elements
+                      .map((n) => n.toFixed(3))
+                      .join(", ")}`
+                  );
+                }
+
+                // Log details for instance 0 in sphere layout before matrix composition
+                if (i === 0 && currentLayout === "sphere" && shouldLog) {
+                  console.log(
+                    `[Debug Sphere Inst 0] Pre-compose: pos: ${tempPosition
+                      .toArray()
+                      .map((n) => n.toFixed(3))}, pos.length: ${tempPosition
+                      .length()
+                      .toFixed(3)}, quat: ${tempQuaternion
+                      .toArray()
+                      .map((n) => n.toFixed(3))}, scale: ${tempScale
+                      .toArray()
+                      .map((n) => n.toFixed(3))}`
+                  );
+                }
+
+                tempQuaternion.normalize();
+                tempMatrix.compose(tempPosition, tempQuaternion, tempScale);
+
+                // Log the composed matrix for instance 0 in sphere layout
+                if (i === 0 && currentLayout === "sphere" && shouldLog) {
+                  console.log(
+                    `[Debug Sphere Inst 0] Post-compose tempMatrix (applied to instance 0): ${tempMatrix.elements
+                      .map((n) => n.toFixed(3))
+                      .join(", ")}`
+                  );
+                }
+
+                data.visibleMeshGroup.setMatrixAt(
+                  data.localInstanceId,
+                  tempMatrix
+                );
               } catch (error) {
                 console.error(
                   `Error animating instance ${i} in layout ${currentLayout}:`,
@@ -1746,11 +1971,16 @@
         if (matrixNeedsUpdate) {
           instancedMeshes.forEach((mesh) => {
             if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
-            // Also update color buffer if hover effects changed it
+            mesh.matrixWorldNeedsUpdate = true; // Force update of world matrix
             if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
           });
           raycastMeshes.forEach((mesh) => {
             if (mesh.instanceMatrix) mesh.instanceMatrix.needsUpdate = true;
+            mesh.matrixWorldNeedsUpdate = true; // Force update of world matrix for raycast meshes
+            if (mesh.geometry) {
+              // Ensure geometry exists before computing bounding sphere
+              mesh.computeBoundingSphere(); // 명시적으로 경계 구 업데이트
+            }
           });
         }
 
