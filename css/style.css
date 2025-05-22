@@ -110,47 +110,40 @@ canvas {
     left: 5px;
   }
   #controls {
-    padding: 12px;
-    font-size: 14px;
-    max-width: calc(90% - 40px);
-    max-height: 85vh;
+    padding: 10px;
+    font-size: 13px;
+    max-width: calc(85% - 40px);
+    max-height: 80vh;
     overflow-y: auto;
-    background-color: rgba(30, 30, 30, 0.85);
   }
   #controls.collapsed {
     transform: translateX(-110%);
   }
   #logoImage {
-    height: 24px;
-    margin-bottom: 12px;
-    width: auto;
-    max-width: 100%;
+    height: 20px;
+    margin-bottom: 10px;
   }
-  #selectedItemPanel {
-    margin-top: 12px;
-    padding-top: 12px;
-    max-width: 100%;
+  #bgColorPicker {
+    width: 30px;
+    height: 18px;
   }
-  #selectedItemImage {
-    width: 100%;
-    height: auto;
-    max-height: 180px;
-    margin-bottom: 8px;
+  #visitSiteButton {
+    padding: 8px 12px;
+    font-size: 0.85em;
   }
+  #toggleControlsButton {
+    padding: 8px 10px;
+    font-size: 18px;
+  }
+
   .layout-button {
-    padding: 8px 10px;
-    font-size: 0.9em;
-    min-width: 60px;
-    height: 36px;
-  }
-  .color-button {
-    padding: 8px 10px;
-    font-size: 0.9em;
-    min-width: 60px;
-    height: 36px;
+    padding: 6px 8px;
+    font-size: 0.8em;
+    flex-grow: 1;
+    min-width: 55px;
   }
   #layoutControls > div {
-    gap: 10px;
+    gap: 8px;
   }
   #loader {
     font-size: 1.2em;
@@ -160,29 +153,20 @@ canvas {
 
 @media (max-width: 480px) {
   #controls {
-    max-width: calc(95% - 30px);
-    padding: 10px;
+    max-width: calc(90% - 30px);
+    padding: 8px;
   }
   #logoImage {
-    height: 20px;
-    margin-bottom: 10px;
+    height: 18px;
+    margin-bottom: 8px;
   }
   .layout-button {
-    font-size: 0.85em;
-    min-width: 55px;
-    height: 32px;
-  }
-  .color-button {
-    font-size: 0.85em;
-    min-width: 55px;
-    height: 32px;
-  }
-  #selectedItemImage {
-    max-height: 150px;
+    font-size: 0.75em;
+    min-width: 50px;
   }
   #loader {
-    font-size: 1.1em;
-    padding: 0 12px;
+    font-size: 1em;
+    padding: 0 10px;
   }
 }
 
@@ -377,6 +361,16 @@ canvas {
 
 .layout-button i {
   font-size: 1.2em;
+}
+
+@media (max-width: 768px) {
+  #selectedItemPanel {
+    max-width: 150px; /* 모바일 최대 너비 */
+  }
+  #selectedItemImage {
+    width: 150px; /* 모바일에서의 고정된 너비 */
+    height: 150px; /* 모바일에서의 고정된 높이 */
+  }
 }
 
 .color-button {

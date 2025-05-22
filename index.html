@@ -40,8 +40,8 @@
             </button>
             <button
               class="layout-button"
-              data-layout="grid"
-              title="My Room"
+              data-layout="sphere"
+              title="Sphere"
               style="width: 100%; height: 40px"
             >
               ⍋⍡⌺
@@ -51,24 +51,17 @@
               data-color="#f0f0f0"
               title="밝은 회색 배경"
             >
-              ⍧⍡⍬
-            </button>
-            <button
-              class="layout-button"
-              data-layout="sphere"
-              title="Sphere"
-              style="width: 100%; height: 40px"
-            >
-              ⍿⍢⌱
+              ⍿⍡⍟
             </button>
             <button
               class="color-button"
-              data-color="#7DCE82"
-              title="어두운 연두색 배경"
+              data-color="#9370DB"
+              title="보라색 배경"
               style="width: 100%; height: 40px"
             >
-              ⍿⍤⍟
+              ⍲⍡⍲
             </button>
+
             <button
               class="layout-button"
               data-layout="flow"
@@ -76,6 +69,14 @@
               style="width: 100%; height: 40px"
             >
               ⌾⍥⌾
+            </button>
+            <button
+              class="color-button"
+              data-color="#7DCE82"
+              title="어두운 연두색 배경"
+              style="width: 100%; height: 40px"
+            >
+              ⍿⍢⌱
             </button>
           </div>
         </div>
@@ -1057,42 +1058,6 @@
             break;
           } // End sphere case
 
-          case "grid": // Fall through to wavegrid for base calculation
-          case "wavegrid": {
-            // Added block scope
-            const { COLUMNS, SPACING, POSITION_JITTER, ROTATION_JITTER } =
-              CONFIG.LAYOUT.GRID;
-            const rows = Math.ceil(totalInstances / COLUMNS);
-
-            for (let i = 0; i < totalInstances; i++) {
-              const row = Math.floor(i / COLUMNS);
-              const col = i % COLUMNS;
-
-              const baseX = (col - (COLUMNS - 1) / 2) * SPACING;
-              const baseY = (row - (rows - 1) / 2) * SPACING;
-              const baseZ = 0; // Base Z for grid
-
-              const finalX = baseX + (Math.random() - 0.5) * POSITION_JITTER;
-              const finalY = baseY + (Math.random() - 0.5) * POSITION_JITTER;
-              const finalZ =
-                baseZ + (Math.random() - 0.5) * POSITION_JITTER * 0.5; // Slight Z jitter
-
-              const randomZRotation = (Math.random() - 0.5) * ROTATION_JITTER;
-              const targetQuaternion = new THREE.Quaternion().setFromEuler(
-                new THREE.Euler(0, 0, randomZRotation) // Face camera with Z jitter
-              );
-
-              positions.push({
-                x: finalX,
-                y: finalY,
-                z: finalZ, // This is the initial position, targetZ will be baseZ
-                quaternion: targetQuaternion,
-                baseZ: baseZ, // Store the target base Z specifically for wavegrid animation
-              });
-            }
-            break;
-          } // End grid/wavegrid case
-
           case "spiral": {
             // Added block scope
             const {
@@ -1545,59 +1510,6 @@
                     // 수정된 Quaternion 적용 로직 유지
                     tempQuaternion.copy(baseQuaternion);
                     tempQuaternion.premultiply(selfRotateQuat);
-
-                    break;
-                  }
-                  case "grid": {
-                    // Mostly static, maybe a very slow idle rotation?
-                    const { GRID_IDLE_ROT_SPEED } = CONFIG.ANIMATION;
-                    if (GRID_IDLE_ROT_SPEED > 0) {
-                      const idleRotateQuat =
-                        new THREE.Quaternion().setFromAxisAngle(
-                          new THREE.Vector3(0, 0, 1),
-                          GRID_IDLE_ROT_SPEED * delta * (i % 2 === 0 ? 1 : -1)
-                        ); // Vary direction
-                      tempQuaternion.premultiply(idleRotateQuat);
-                    }
-                    break;
-                  }
-                  case "wavegrid": {
-                    const {
-                      EFFECT_RADIUS,
-                      MAX_DISPLACEMENT,
-                      WAVE_SPEED,
-                      DAMPING,
-                    } = CONFIG.LAYOUT.WAVEGRID;
-                    const baseZ = data.targetZ !== undefined ? data.targetZ : 0; // Use stored base Z
-
-                    // Calculate distance from pointer in XZ plane (or use 3D distance)
-                    const dist = tempPosition.distanceTo(pointerWorldPosition);
-                    let waveOffset = 0;
-
-                    if (dist < EFFECT_RADIUS) {
-                      // Calculate wave displacement based on distance and time
-                      const distanceFactor = 1.0 - dist / EFFECT_RADIUS; // 1 at center, 0 at edge
-                      // Use Math.pow for sharper falloff, or keep linear
-                      const waveFactor = Math.pow(distanceFactor, 2); // Sharper falloff
-                      waveOffset =
-                        waveFactor *
-                        MAX_DISPLACEMENT *
-                        Math.sin(elapsedTime * WAVE_SPEED - dist * 0.5); // Sine wave based on time and distance
-                    }
-
-                    // Smoothly interpolate the current offset towards the target offset
-                    data.currentZOffset = THREE.MathUtils.lerp(
-                      data.currentZOffset,
-                      waveOffset,
-                      1 - DAMPING
-                    );
-
-                    tempPosition.z = baseZ + data.currentZOffset; // Apply smoothed offset
-
-                    // Optional: Add slight rotation based on wave?
-                    // const rotFactor = data.currentZOffset * 0.1;
-                    // const waveRotQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(rotFactor, 0, 0));
-                    // tempQuaternion.premultiply(waveRotQuat);
 
                     break;
                   }
