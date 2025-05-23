@@ -152,14 +152,10 @@ canvas {
     font-size: 0.9em; /* 버튼 폰트 크기 조정 */
   }
   #toggleControlsButton {
-    padding: 13px;
-    font-size: 22px;
-    position: relative;
+    padding: 10px; /* 크기 조정 */
+    font-size: 20px; /* 크기 조정 */
     background-color: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
-    pointer-events: auto;
-    width: 100%;
-    box-sizing: border-box;
   }
 
   .layout-button {
@@ -541,19 +537,22 @@ canvas {
   }
 
   #toggleControlsButton {
-    padding: 13px;
-    font-size: 22px;
+    padding: 10px; /* 크기 조정 */
+    font-size: 20px; /* 크기 조정 */
     background-color: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
   }
 
   #bgmButton {
-    padding: 13px;
-    font-size: 22px;
-    background-color: rgba(40, 40, 40, 0.85);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 8px;
+    padding: 10px; /* 크기 조정 */
+    font-size: 20px; /* 크기 조정 */
+    background-color: rgba(
+      40,
+      40,
+      40,
+      0.85
+    ); /* toggle 버튼과 동일한 모바일 배경 */
+    color: white; /* toggle 버튼과 동일한 모바일 글자색 */
   }
 
   #bgmButton:hover {
