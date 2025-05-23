@@ -83,6 +83,19 @@
         </div>
 
         <div id="selectedItemPanel" style="display: block; padding-top: 5px">
+          <div
+            id="luckText"
+            style="
+              display: none;
+              text-align: center;
+              margin-bottom: 5px;
+              color: #ffee75;
+              font-weight: bold;
+              font-size: 0.9em;
+            "
+          >
+            Luck + 1
+          </div>
           <img
             id="selectedItemImage"
             src=""
@@ -1040,23 +1053,35 @@
         INTERSECTED_INFO = newIntersectedInfo;
 
         // 클릭 처리
+        const luckTextElement = document.getElementById("luckText"); // luckText 요소 가져오기
+
         if (isSelectionAttempt && newIntersectedInfo) {
           const data = instanceData[newIntersectedInfo.originalIndex];
           if (data) {
             selectedItemImage.src = data.imageUrl;
             selectedItemImage.alt = "Selected product";
             selectedItemImage.style.display = "block";
+            if (luckTextElement) luckTextElement.style.display = "block"; // "Luck by + 1" 텍스트 표시
+
             visitSiteButton.setAttribute("data-url", data.purchaseUrl);
             visitSiteButton.disabled =
               !data.purchaseUrl || data.purchaseUrl === "https://mayi2d.shop/";
           }
         } else if (!isSelectionAttempt) {
-          // 이미지가 선택되지 않았을 때만 초기화
-          if (!selectedItemImage.src) {
-            selectedItemImage.style.display = "none";
-            visitSiteButton.setAttribute("data-url", "https://mayi2d.shop");
-            visitSiteButton.disabled = false;
+          // 이미지가 선택되지 않았을 때(호버 해제 등) 또는 초기화 시
+          // selectedItemImage.src가 비어있을 때만 luckText를 숨깁니다.
+          // 이는 이미지가 표시된 상태에서 다른 곳을 클릭해도 텍스트가 유지되도록 합니다.
+          // 만약 다른 곳을 클릭했을 때 바로 텍스트가 사라지길 원한다면 이 조건은 변경되어야 합니다.
+          if (
+            !selectedItemImage.src ||
+            selectedItemImage.style.display === "none"
+          ) {
+            if (luckTextElement) luckTextElement.style.display = "none"; // "Luck by + 1" 텍스트 숨김
           }
+        }
+        // 이미지가 명시적으로 숨겨질 때 (예: 초기 상태 또는 선택 해제 시)
+        if (selectedItemImage.style.display === "none") {
+          if (luckTextElement) luckTextElement.style.display = "none";
         }
       }
 
