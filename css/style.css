@@ -112,8 +112,9 @@ canvas {
     padding: 10px; /* 패딩 추가 */
     box-sizing: border-box; /* 패딩 포함하여 크기 계산 */
     display: flex;
-    justify-content: space-between; /* 버튼을 양 끝으로 배치 */
+    justify-content: flex-start; /* 변경: 아이템을 시작점으로 정렬 */
     align-items: flex-start;
+    gap: 10px; /* 추가: 컨트롤 패널과 버튼 사이 간격 */
   }
   #controls {
     padding: 15px; /* 패딩 증가 */
