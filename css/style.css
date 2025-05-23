@@ -96,11 +96,14 @@ canvas {
   font-size: 16px;
   margin-left: 8px;
   z-index: 101;
-  transition: background-color 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #toggleControlsButton:hover {
   background-color: rgba(80, 80, 80, 0.9);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 /* --- Responsive Design --- */
@@ -151,11 +154,12 @@ canvas {
   #toggleControlsButton {
     padding: 12px 14px; /* 토글 버튼 패딩 증가 */
     font-size: 22px; /* 아이콘 크기 느낌으로 폰트 크기 증가 */
-    margin-left: 0; /* 왼쪽 마진 제거 */
     position: relative; /* controlsContainer 내에서 위치 조정 용이하도록 */
     background-color: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
     pointer-events: auto; /* 중요: 토글 버튼은 클릭 가능해야 함 */
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .layout-button {
@@ -495,4 +499,69 @@ canvas {
   box-shadow: 0 0 12px rgba(0, 200, 255, 0.4), 0 3px 8px rgba(0, 0, 0, 0.2);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+}
+
+#menuActionsWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px; /* 버튼 사이의 간격 */
+  margin-left: 8px; /* 데스크톱에서 컨트롤 패널과의 간격 */
+  position: relative; /* Ensure it's positioned relative to controlsContainer */
+  z-index: 101; /* Match toggleControlsButton */
+  pointer-events: auto; /* Ensure buttons inside are clickable */
+}
+
+#bgmButton {
+  /* Shape/Size to match #toggleControlsButton (Desktop) */
+  padding: 8px 10px;
+  font-size: 16px;
+  border-radius: 5px;
+
+  /* Appearance based on screenshot (Light theme - Desktop) */
+  background-color: #f0f0f0; /* Light gray background */
+  color: #333; /* Dark gray icon/text */
+  border: 1px solid #ccc; /* Light gray border */
+
+  /* Layout & Behavior */
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  line-height: 1.3;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+#bgmButton:hover {
+  background-color: #e0e0e0; /* Slightly darker on hover */
+  border-color: #bbb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  #menuActionsWrapper {
+    margin-left: 0;
+    /* flex-direction: column; align-items: flex-start; are inherited or set */
+  }
+
+  #toggleControlsButton {
+    padding: 12px 14px;
+    font-size: 22px;
+    background-color: rgba(40, 40, 40, 0.85); /* Mobile dark theme */
+    border-radius: 8px;
+    /* width: 100%; box-sizing: border-box; are inherited */
+  }
+
+  #bgmButton {
+    /* Shape/Size to match #toggleControlsButton (Mobile) */
+    padding: 12px 14px;
+    font-size: 22px;
+    border-radius: 8px;
+
+    /* Appearance (Light theme - Mobile, consistent with Desktop BGM button) */
+    background-color: #f0f0f0;
+    color: #333;
+    border: 1px solid #ccc;
+    /* width: 100%; box-sizing: border-box; text-align, etc. are inherited */
+  }
 }

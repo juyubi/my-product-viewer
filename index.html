@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
+    <audio id="bgm" loop src="BGM/MAYI2D BGM.mp3"></audio>
     <div id="controlsContainer">
       <div id="controls">
         <img
@@ -93,7 +94,10 @@
           </button>
         </div>
       </div>
-      <button id="toggleControlsButton">☰</button>
+      <div id="menuActionsWrapper">
+        <button id="toggleControlsButton">☰</button>
+        <button id="bgmButton" title="Play BGM">▶</button>
+      </div>
     </div>
 
     <div class="loading-overlay"></div>
@@ -735,6 +739,30 @@
         }
 
         visitSiteButton.addEventListener("click", onVisitSiteClick);
+
+        // BGM Control Logic
+        const bgmAudio = document.getElementById("bgm");
+        const bgmButton = document.getElementById("bgmButton");
+
+        if (bgmAudio && bgmButton) {
+          bgmAudio.volume = 0.3; // 초기 볼륨 설정 (예: 30%)
+
+          bgmButton.addEventListener("click", () => {
+            if (bgmAudio.paused) {
+              bgmAudio.play().catch((error) => {
+                console.error("BGM play error:", error);
+                // 브라우저 정책에 의해 자동 재생이 막힐 수 있습니다.
+                // 사용자 인터랙션 후에는 일반적으로 재생이 가능합니다.
+              });
+              bgmButton.innerHTML = "⏸"; // Pause 아이콘
+              bgmButton.title = "Pause BGM";
+            } else {
+              bgmAudio.pause();
+              bgmButton.innerHTML = "▶"; // Play 아이콘
+              bgmButton.title = "Play BGM";
+            }
+          });
+        }
       }
 
       function onWindowResize() {
