@@ -162,16 +162,27 @@ canvas {
 
 @media (max-width: 480px) {
   #controls {
-    max-width: calc(90% - 30px);
-    padding: 8px;
+    font-size: 12px; /* 아이폰 등 작은 화면에서 전체적인 글꼴 크기 줄임 */
+    max-width: calc(95% - 20px); /* 화면 대비 최대 너비 조정 */
+    padding: 10px; /* 패딩 재조정 */
   }
   #logoImage {
-    height: 18px;
+    height: 16px; /* 로고 크기 소폭 줄임 */
     margin-bottom: 8px;
   }
-  .layout-button {
-    font-size: 0.75em;
-    min-width: 50px;
+  .layout-button,
+  .color-button {
+    font-size: 0.85em; /* 버튼 글꼴 크기 조정 (12px 기준) */
+    padding: 8px 10px; /* 버튼 패딩 조정 */
+    min-width: auto; /* min-width 제거 또는 auto로 설정하여 유연하게 */
+  }
+  #selectedItemImage {
+    width: 120px; /* 더 작은 화면에서 선택된 이미지 크기 줄임 */
+    height: 120px;
+  }
+  #visitSiteButton {
+    font-size: 0.8em; /* 방문 버튼 글꼴 크기 조정 */
+    padding: 8px 10px;
   }
   #loader {
     font-size: 1em;
