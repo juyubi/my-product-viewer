@@ -117,7 +117,7 @@ canvas {
     display: flex;
     justify-content: flex-start; /* 변경: 아이템을 시작점으로 정렬 */
     align-items: flex-start;
-    gap: 10px; /* 추가: 컨트롤 패널과 버튼 사이 간격 */
+    gap: 5px; /* 변경: 컨트롤 패널과 버튼 사이 간격 축소 */
     pointer-events: none; /* 중요: 컨테이너 자체는 클릭 이벤트를 통과시킴 */
   }
   #controls {
@@ -152,8 +152,8 @@ canvas {
     font-size: 0.9em; /* 버튼 폰트 크기 조정 */
   }
   #toggleControlsButton {
-    padding: 10px; /* 크기 조정 */
-    font-size: 20px; /* 크기 조정 */
+    padding: 8px; /* 크기 조정 */
+    font-size: 18px; /* 크기 조정 */
     background-color: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
   }
@@ -537,15 +537,15 @@ canvas {
   }
 
   #toggleControlsButton {
-    padding: 10px; /* 크기 조정 */
-    font-size: 20px; /* 크기 조정 */
+    padding: 8px; /* 크기 조정 */
+    font-size: 18px; /* 크기 조정 */
     background-color: rgba(40, 40, 40, 0.85);
     border-radius: 8px;
   }
 
   #bgmButton {
-    padding: 10px; /* 크기 조정 */
-    font-size: 20px; /* 크기 조정 */
+    padding: 8px; /* 크기 조정 */
+    font-size: 18px; /* 크기 조정 */
     background-color: rgba(
       40,
       40,
